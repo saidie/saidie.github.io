@@ -1,0 +1,4 @@
+/* for pygments with noclasses=true */
+pre {
+    padding: .5em;
+}

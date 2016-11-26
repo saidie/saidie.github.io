@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Rust_tips on saidie&#39;s log</title>
+    <link>https://saidie.github.io/categories/rust_tips/</link>
+    <description>Recent content in Rust_tips on saidie&#39;s log</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>Hiroshi Saito &amp;copy; 2016. All rights reserved.</copyright>
+    <lastBuildDate>Tue, 18 Apr 2017 19:50:30 +0900</lastBuildDate>
+    
+	<atom:link href="https://saidie.github.io/categories/rust_tips/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Handling HashMap with byte-string keys in Rust</title>
+      <link>https://saidie.github.io/post/hash_map_with_byte_string_keys_in_rust/</link>
+      <pubDate>Tue, 18 Apr 2017 19:50:30 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/hash_map_with_byte_string_keys_in_rust/</guid>
+      <description>Recently, I&#39;ve tried to create a hash map whose key is a &#34;byte string&#34; in Rust.
+A naive code would be something like this:
+letm=HashMap&amp;lt;Vec&amp;lt;u8&amp;gt;,V&amp;gt;  Note that using a borrowed type, like &amp;amp;[u8], as key is not a good idea. Of course, this does work but it would little bit inconvenient if you would like to use the key like a &#34;string&#34;, e.g.,
+m.get(&amp;quot;ascii string&amp;quot;)  However, it will cause a compilation error.</description>
+    </item>
+    
+  </channel>
+</rss>

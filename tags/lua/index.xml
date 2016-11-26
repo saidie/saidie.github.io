@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Lua on saidie&#39;s log</title>
+    <link>https://saidie.github.io/tags/lua/</link>
+    <description>Recent content in Lua on saidie&#39;s log</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>Hiroshi Saito &amp;copy; 2016. All rights reserved.</copyright>
+    <lastBuildDate>Tue, 29 Dec 2015 01:30:53 +0900</lastBuildDate>
+    
+	<atom:link href="https://saidie.github.io/tags/lua/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Dijkstra&#39;s algorithm by Redis and Lua (2 of 2)</title>
+      <link>https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part2/</link>
+      <pubDate>Tue, 29 Dec 2015 01:30:53 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part2/</guid>
+      <description>In the previous post, a brief description about running Lua script on Redis and a code snippet to add a graph edge to a hash are given. In this post, an implementation of the Dijkstra&amp;rsquo;s shortest path algorithm is explained. I will not explain the algorithm itself since there are already so many articles explaining about it, e.g., Wikipedia&amp;rsquo;s page.
+Priority Queue A priority queue plays a primary role on the Dijkstra&amp;rsquo;s algorithm.</description>
+    </item>
+    
+    <item>
+      <title>Dijkstra&#39;s algorithm by Redis and Lua (1 of 2)</title>
+      <link>https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part1/</link>
+      <pubDate>Mon, 21 Dec 2015 01:44:09 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part1/</guid>
+      <description>Redis provides several kind of data structures and many functions to manipulate those data. But sometimes additional function is required for satisfying some demand.
+The power of Lua For example, you may need to delete a string only when the string is equal to a specified one but there is no such function. Although this is easy to implement by checking the equality of GET-ed string in client-side program and executing DEL command if necessary, it is difficult to make sure that this operation is atomic and you also have to implement a remote locking mechanism.</description>
+    </item>
+    
+  </channel>
+</rss>

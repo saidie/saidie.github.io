@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Renoir is a production ready Redis Cluster client library for Ruby. It has compatible interface with the standard redis gem. It supports automatic MOVED/ASK redirections handling, transactions, command pipelining and so on.">
+  <meta name="generator" content="Hugo 0.21-DEV" />
+
+  <title>Introduction to Renoir &middot; saidie&#39;s log</title>
+
+  
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css">
+
+  <!--[if lte IE 8]>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-old-ie-min.css">
+  <![endif]-->
+  <!--[if gt IE 8]><!-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-min.css">
+  <!--<![endif]-->
+
+  <!--[if lte IE 8]>
+  <link rel="stylesheet" href="https://saidie.github.io/css/side-menu-old-ie.css">
+  <![endif]-->
+  <!--[if gt IE 8]><!-->
+  <link rel="stylesheet" href="https://saidie.github.io/css/side-menu.css">
+  <!--<![endif]-->
+
+  <link rel="stylesheet" href="https://saidie.github.io/css/blackburn.css">
+
+  
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+  
+  <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet" type="text/css">
+
+  
+  
+
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  
+
+  <link rel="shortcut icon" href="https://saidie.github.io/img/favicon.ico" type="image/x-icon" />
+
+  
+    <link rel="stylesheet" href="https://saidie.github.io/css/style.css">
+  
+  
+
+</head>
+
+
+<body>
+<div id="layout">
+
+  
+<a href="#menu" id="menuLink" class="menu-link">
+  
+  <span></span>
+</a>
+<div id="menu">
+
+  
+  <a class="pure-menu-heading brand" href="https://saidie.github.io/">@saidie</a>
+
+
+  <div class="pure-menu">
+    <ul class="pure-menu-list">
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/post/"><i class='fa fa-list fa-fw'></i>Posts</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/about/"><i class='fa fa-user fa-fw'></i>About</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/categories/"><i class='fa fa-folder fa-fw'></i>Categories</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/tags/"><i class='fa fa-tags fa-fw'></i>Tags</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/"><i class='fa fa-home fa-fw'></i>Home</a>
+      
+        </li>
+      
+    </ul>
+  </div>
+
+  <div class="pure-menu social">
+  <ul class="pure-menu-list">
+
+    
+
+    
+
+    
+    <li class="pure-menu-item">
+      <a class="pure-menu-link" href="https://twitter.com/siedie" target="_blank"><i class="fa fa-twitter-square fa-fw"></i>Twitter</a>
+    </li>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <li class="pure-menu-item">
+      <a class="pure-menu-link" href="https://github.com/saidie" target="_blank"><i class="fa fa-github-square fa-fw"></i>GitHub</a>
+    </li>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+  </ul>
+</div>
+
+
+  <div>
+  <div class="small-print">
+    <small>Hiroshi Saito &copy; 2016. All rights reserved.</small>
+  </div>
+  <div class="small-print">
+    <small>Built with&nbsp;<a href="https://gohugo.io/" target="_blank">Hugo</a></small>
+    <small>Theme&nbsp;<a href="https://github.com/yoshiharuyamashita/blackburn" target="_blank">Blackburn</a></small>
+  </div>
+</div>
+
+</div>
+
+
+  <div id="main">
+
+
+<div class="header">
+  <h1>Introduction to Renoir</h1>
+</div>
+<div class="content">
+
+  <div class="post-meta">
+
+  <div>
+    <i class="fa fa-calendar fa-fw"></i>
+    <time>2017-03-01 14:32</time>
+  </div>
+
+  
+
+  
+  
+  
+  <div>
+    <i class="fa fa-folder fa-fw"></i>
+    
+      <a class="post-taxonomy-category" href="https://saidie.github.io/categories/renoir_development">Renoir_development</a>
+    
+  </div>
+  
+  
+
+  
+  
+  
+  <div>
+    <i class="fa fa-tags fa-fw"></i>
+    
+      <a class="post-taxonomy-tag" href="https://saidie.github.io/tags/redis">Redis</a>&nbsp;&#47;
+    
+      <a class="post-taxonomy-tag" href="https://saidie.github.io/tags/redis-cluster">Redis Cluster</a>&nbsp;&#47;
+    
+      <a class="post-taxonomy-tag" href="https://saidie.github.io/tags/ruby">Ruby</a>&nbsp;&#47;
+    
+      <a class="post-taxonomy-tag" href="https://saidie.github.io/tags/oss">OSS</a>
+    
+  </div>
+  
+  
+
+</div>
+
+
+  
+
+<p>About a month ago, I released a &ldquo;production ready&rdquo; Redis cluster client library for Ruby. It is named <strong>Renoir</strong> and was pushed to rubygems.org: <a href="https://rubygems.org/gems/renoir">https://rubygems.org/gems/renoir</a>.</p>
+
+<p>It was surprising that there had been no reliable Redis Cluster client library for Ruby in spite of the fact that Redis 3.0 had been released about two years ago. In fact, there exist several implementations but their README always say like &ldquo;this library is not yet production ready.&rdquo; Because a reliable library are needed for my work, I tried to develop such a library, and now it would reach a certain degree of quality. This post gives a brief introduction to Renoir; a concept and current features are explained.</p>
+
+<h2 id="renoir-example">Renoir Example</h2>
+
+<p>For example, Renoir could be used like this:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #268bd2">require</span> <span style="color: #2aa198">&#39;renoir&#39;</span>
+
+<span style="color: #93a1a1">rc</span> <span style="color: #839496">=</span> <span style="color: #b58900">Renoir</span><span style="color: #839496">::</span><span style="color: #b58900">Client</span><span style="color: #839496">.</span><span style="color: #93a1a1">new</span><span style="color: #839496">(</span><span style="color: #2aa198">cluster_nodes</span><span style="color: #839496">:</span> <span style="color: #839496">[</span><span style="color: #2aa198">&#39;127.0.0.1:30001&#39;</span><span style="color: #839496">])</span>
+
+<span style="color: #268bd2">p</span> <span style="color: #93a1a1">rc</span><span style="color: #839496">.</span><span style="color: #93a1a1">set</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;hoge&#39;</span><span style="color: #839496">,</span> <span style="color: #2aa198">123</span><span style="color: #839496">,</span> <span style="color: #2aa198">nx</span><span style="color: #839496">:</span> <span style="color: #cb4b16">true</span><span style="color: #839496">)</span> <span style="color: #586e75; font-style: italic"># keyslot is 1525</span>
+<span style="color: #268bd2">p</span> <span style="color: #93a1a1">rc</span><span style="color: #839496">.</span><span style="color: #93a1a1">zrange</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;fuga&#39;</span><span style="color: #839496">,</span> <span style="color: #2aa198">0</span><span style="color: #839496">,</span> <span style="color: #839496">-</span><span style="color: #2aa198">1</span><span style="color: #839496">,</span> <span style="color: #2aa198">with_scores</span><span style="color: #839496">:</span> <span style="color: #cb4b16">true</span><span style="color: #839496">)</span> <span style="color: #586e75; font-style: italic"># keyslot is 9097</span>
+</pre></div>
+
+<p>Suppose that a Redis cluster is running and one of the cluster nodes is listening the port 30001 on the local host. The initializer of <code>Renoir::Client</code> takes at least an address of a node in a cluster and remaining node addresses will be automatically retrieved. In this example, <code>SET</code> and <code>ZRANGE</code> commands are sent to the cluster. Because the keys for these commands have different &ldquo;keyslots&rdquo;, each command have to be sent to different nodes unless those keyslots are assigned to same node. But you don&rsquo;t need to worry about that here because the primary job of Renoir is to manage such directions automatically.</p>
+
+<p>You may notice that the methods and arguments of <code>Renoir::Client</code> are same as the <a href="https://rubygems.org/gems/redis">redis gem</a>. So it is! Renoir is designed to provide compatible interface with the redis gem. Thus you can communicate with a Redis cluster as well as communicating with single Redis server by the <code>redis</code> gem.</p>
+
+<p>If you would like to test this code, execute <code>gem install renoir</code> and create a Redis cluster on local machine with a node listening port 30001 (<a href="https://redis.io/topics/cluster-tutorial#creating-a-redis-cluster-using-the-create-cluster-script">the official <code>create-cluster</code> script</a> is useful to create such a cluster).</p>
+
+<h2 id="features">Features</h2>
+
+<h3 id="handling-moved-ask-redirections">Handling MOVED/ASK redirections</h3>
+
+<p>Of course, this is the main feature. User can send commands to Redis cluster in a similar manner as sending ones to a single Redis instance because Renoir catches MOVED/ASK redirection responses and resend commands to an appropriate node automatically. Note that the number of redirections can be limited by <code>max_redirection</code> option to prevent too many redirections.</p>
+
+<h3 id="maintaining-cluster-information">Maintaining cluster information</h3>
+
+<p>Renoir maintains information of a cluster. In particular, keyslots assignment information is important because a target node, which holds a key(slot) of a command, could be determined without sending request, i.e., probability of redirection and then latency are dramatically reduced. Although master/slave information is available, all commands are sent to only master nodes and there is no plan to support slaves so far.</p>
+
+<h3 id="validating-singleness-of-command-keyslots">Validating singleness of command keyslots</h3>
+
+<p>Renoir checks whether keyslots of keys in a command are all the same before sending and the command fails if it is not. This is fine because sending a command accessing multi-keyslots is useless. Besides, Renoir basically refuses a command without a key because a target node is unknown. Sending a command to all nodes could be an option but it would be scary to use because request timing is uncontrollable by user. Instead, <code>Renoir::Client#each_node</code> method could be used to send no-key commands in more controllable way, like this:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #93a1a1">keys</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">rc</span><span style="color: #839496">.</span><span style="color: #93a1a1">each_node</span><span style="color: #839496">.</span><span style="color: #93a1a1">flat_map</span> <span style="color: #859900">do</span> <span style="color: #839496">|</span><span style="color: #93a1a1">node</span><span style="color: #839496">|</span> <span style="color: #586e75; font-style: italic"># node is a `::Redis` instance</span>
+  <span style="color: #268bd2">sleep</span> <span style="color: #2aa198">0</span><span style="color: #839496">.</span><span style="color: #2aa198">01</span>
+  <span style="color: #93a1a1">node</span><span style="color: #839496">.</span><span style="color: #93a1a1">keys</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;test_*&#39;</span><span style="color: #839496">)</span>
+<span style="color: #859900">end</span>
+
+<span style="color: #93a1a1">rc</span><span style="color: #839496">.</span><span style="color: #93a1a1">each_node</span><span style="color: #839496">(&amp;</span><span style="color: #2aa198">:bgsave</span><span style="color: #839496">)</span>
+</pre></div>
+
+<h3 id="supporting-transaction-and-command-pipelining">Supporting transaction and command pipelining</h3>
+
+<p><code>Renoir::Client#multi</code> and <code>#pipelined</code> could be used for transaction and command pipelining:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #93a1a1">rc</span><span style="color: #839496">.</span><span style="color: #93a1a1">multi</span> <span style="color: #859900">do</span> <span style="color: #839496">|</span><span style="color: #93a1a1">tx</span><span style="color: #839496">|</span>
+  <span style="color: #93a1a1">tx</span><span style="color: #839496">.</span><span style="color: #93a1a1">set</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;hoge{1}&#39;</span><span style="color: #839496">,</span> <span style="color: #2aa198">123</span><span style="color: #839496">)</span>
+  <span style="color: #93a1a1">tx</span><span style="color: #839496">.</span><span style="color: #93a1a1">get</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;hoge{1}&#39;</span><span style="color: #839496">)</span>
+  <span style="color: #93a1a1">tx</span><span style="color: #839496">.</span><span style="color: #93a1a1">get</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;fuga{1}&#39;</span><span style="color: #839496">)</span>
+<span style="color: #859900">end</span>
+
+<span style="color: #93a1a1">rc</span><span style="color: #839496">.</span><span style="color: #93a1a1">pipelined</span> <span style="color: #859900">do</span> <span style="color: #839496">|</span><span style="color: #93a1a1">pipeline</span><span style="color: #839496">|</span>
+  <span style="color: #93a1a1">pipeline</span><span style="color: #839496">.</span><span style="color: #93a1a1">set</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;hoge{1}&#39;</span><span style="color: #839496">,</span> <span style="color: #2aa198">123</span><span style="color: #839496">)</span>
+  <span style="color: #93a1a1">pipeline</span><span style="color: #839496">.</span><span style="color: #93a1a1">get</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;hoge{1}&#39;</span><span style="color: #839496">)</span>
+  <span style="color: #93a1a1">pipeline</span><span style="color: #839496">.</span><span style="color: #93a1a1">get</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;fuga{1}&#39;</span><span style="color: #839496">)</span>
+<span style="color: #859900">end</span>
+</pre></div>
+
+<p>The commands will be sent to a node only if all keyslots of the commands are same. Hence it is highly recommended to use <a href="https://redis.io/topics/cluster-spec#keys-hash-tags">keys hash tags</a>.</p>
+
+<p>Unfortunately, these commands are not well compatible with the ones of the <code>redis</code> gem; a return value of a command inside the block is useless because a &ldquo;future&rdquo; variable is not yet supported. All responses are returned as a return value of <code>#multi</code>/<code>#pipelined</code>, though.</p>
+
+<hr />
+
+<p>This gem has been used at my work for a messaging delivery system which handles millions of requests in a minute and it works very well so far. But it lacks real world examples. So it would be greatly appreciated if you could use it!</p>
+
+<p>The source code is available on GitHub: <a href="https://github.com/saidie/renoir">https://github.com/saidie/renoir</a> and documentation is also available: <a href="http://www.rubydoc.info/gems/renoir">http://www.rubydoc.info/gems/renoir</a>.</p>
+
+<h3 id="future-work">Future work</h3>
+
+<ul>
+<li>Support &ldquo;future&rdquo; variables in <code>#multi</code> and <code>#pipelined</code></li>
+<li>Add a connection adapter for the <code>redic</code> gem</li>
+</ul>
+
+<h3 id="acknowledgment">Acknowledgment</h3>
+
+<p>My code is originated to <a href="https://github.com/antirez/redis-rb-cluster">the first reference implementation by antirez</a>.</p>
+
+
+  <script>window.twttr = (function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0],
+  t = window.twttr || {};
+  if (d.getElementById(id)) return t;
+  js = d.createElement(s);
+  js.id = id;
+  js.src = "https://platform.twitter.com/widgets.js";
+  fjs.parentNode.insertBefore(js, fjs);
+
+  t._e = [];
+  t.ready = function(f) {
+  t._e.push(f);
+  };
+
+  return t;
+  }(document, "script", "twitter-wjs"));</script>
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.8";
+  fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));</script>
+
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+
+<div class="share">
+  <div>
+    <div class="share-button">
+      <a class="twitter-share-button"
+         href="https://twitter.com/intent/tweet?text=Introduction%20to%20Renoir&nbsp;-&nbsp;saidie%27s%20log&amp;url=https%3a%2f%2fsaidie.github.io%2fpost%2fintroduction_to_renoir%2f&amp;via=siedie">
+        Tweet
+      </a>
+    </div>
+    <div class="share-button">
+    <div class="fb-share-button" data-href="https://saidie.github.io/post/introduction_to_renoir/" data-layout="box_count" data-size="small">
+      <a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fsaidie.github.io%2fpost%2fintroduction_to_renoir%2f&amp;src=sdkpreparse">シェア</a>
+    </div>
+    </div>
+    <div class="share-button">
+    <g:plus action="share" data-href="https://saidie.github.io/post/introduction_to_renoir/" data-annotation="bubble"></g:plus>
+    </div>
+  </div>
+</div>
+
+
+  
+<div class="prev-next-post pure-g">
+  <div class="pure-u-1-24" style="text-align: left;">
+    
+    <a href="https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part2/"><i class="fa fa-chevron-left"></i></a>
+    
+  </div>
+  <div class="pure-u-10-24">
+    
+    <nav class="prev">
+      <a href="https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part2/">Dijkstra&#39;s algorithm by Redis and Lua (2 of 2)</a>
+    </nav>
+    
+  </div>
+  <div class="pure-u-2-24">
+    &nbsp;
+  </div>
+  <div class="pure-u-10-24">
+    
+    <nav class="next">
+      <a href="https://saidie.github.io/post/hash_map_with_byte_string_keys_in_rust/">Handling HashMap with byte-string keys in Rust</a>
+    </nav>
+    
+  </div>
+  <div class="pure-u-1-24" style="text-align: right;">
+    
+    <a href="https://saidie.github.io/post/hash_map_with_byte_string_keys_in_rust/"><i class="fa fa-chevron-right"></i></a>
+    
+  </div>
+</div>
+
+
+
+  
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'saidie-log';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+</div>
+
+</div>
+</div>
+<script src="https://saidie.github.io/js/ui.js"></script>
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-88021039-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+</body>
+</html>
+

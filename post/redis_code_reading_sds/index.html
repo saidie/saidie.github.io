@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="generator" content="Hugo 0.21-DEV" />
+
+  <title>Redis code reading: sds &middot; saidie&#39;s log</title>
+
+  
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css">
+
+  <!--[if lte IE 8]>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-old-ie-min.css">
+  <![endif]-->
+  <!--[if gt IE 8]><!-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-min.css">
+  <!--<![endif]-->
+
+  <!--[if lte IE 8]>
+  <link rel="stylesheet" href="https://saidie.github.io/css/side-menu-old-ie.css">
+  <![endif]-->
+  <!--[if gt IE 8]><!-->
+  <link rel="stylesheet" href="https://saidie.github.io/css/side-menu.css">
+  <!--<![endif]-->
+
+  <link rel="stylesheet" href="https://saidie.github.io/css/blackburn.css">
+
+  
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+  
+  <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet" type="text/css">
+
+  
+  
+
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  
+
+  <link rel="shortcut icon" href="https://saidie.github.io/img/favicon.ico" type="image/x-icon" />
+
+  
+    <link rel="stylesheet" href="https://saidie.github.io/css/style.css">
+  
+  
+
+</head>
+
+
+<body>
+<div id="layout">
+
+  
+<a href="#menu" id="menuLink" class="menu-link">
+  
+  <span></span>
+</a>
+<div id="menu">
+
+  
+  <a class="pure-menu-heading brand" href="https://saidie.github.io/">@saidie</a>
+
+
+  <div class="pure-menu">
+    <ul class="pure-menu-list">
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/post/"><i class='fa fa-list fa-fw'></i>Posts</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/about/"><i class='fa fa-user fa-fw'></i>About</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/categories/"><i class='fa fa-folder fa-fw'></i>Categories</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/tags/"><i class='fa fa-tags fa-fw'></i>Tags</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/"><i class='fa fa-home fa-fw'></i>Home</a>
+      
+        </li>
+      
+    </ul>
+  </div>
+
+  <div class="pure-menu social">
+  <ul class="pure-menu-list">
+
+    
+
+    
+
+    
+    <li class="pure-menu-item">
+      <a class="pure-menu-link" href="https://twitter.com/siedie" target="_blank"><i class="fa fa-twitter-square fa-fw"></i>Twitter</a>
+    </li>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <li class="pure-menu-item">
+      <a class="pure-menu-link" href="https://github.com/saidie" target="_blank"><i class="fa fa-github-square fa-fw"></i>GitHub</a>
+    </li>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+  </ul>
+</div>
+
+
+  <div>
+  <div class="small-print">
+    <small>Hiroshi Saito &copy; 2016. All rights reserved.</small>
+  </div>
+  <div class="small-print">
+    <small>Built with&nbsp;<a href="https://gohugo.io/" target="_blank">Hugo</a></small>
+    <small>Theme&nbsp;<a href="https://github.com/yoshiharuyamashita/blackburn" target="_blank">Blackburn</a></small>
+  </div>
+</div>
+
+</div>
+
+
+  <div id="main">
+
+
+<div class="header">
+  <h1>Redis code reading: sds</h1>
+</div>
+<div class="content">
+
+  <div class="post-meta">
+
+  <div>
+    <i class="fa fa-calendar fa-fw"></i>
+    <time>2015-12-07 08:31</time>
+  </div>
+
+  
+
+  
+  
+  
+  <div>
+    <i class="fa fa-folder fa-fw"></i>
+    
+      <a class="post-taxonomy-category" href="https://saidie.github.io/categories/redis_code_reading">Redis_code_reading</a>
+    
+  </div>
+  
+  
+
+  
+  
+  
+  <div>
+    <i class="fa fa-tags fa-fw"></i>
+    
+      <a class="post-taxonomy-tag" href="https://saidie.github.io/tags/redis">Redis</a>
+    
+  </div>
+  
+  
+
+</div>
+
+
+  
+
+<p>Last weekend, I read and summarized <em>zmalloc.c</em> which provides basic memory allocation mechanisms of Redis. In this weekend, I explored <em>sds.c</em> which implements many functions to manage a dynamic string efficiently; in fact, &ldquo;sds&rdquo; stands for Simple Dynamic String. This post describes a core of <em>sds</em> implementations.
+The version of Redis is 3.0.5. I put some comments on following code snippets.</p>
+
+<h2 id="sds-is-just-a-char-pointer-with-hidden-header">sds is just a char pointer with hidden header</h2>
+
+<p>As well as <em>zmalloc</em> family, <em>sds</em> implicitly keeps track of available size and length of string by placing them on its (hidden) prefix. Actually, <em>sds</em> is defined as a <em>char</em> pointer:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #586e75; font-style: italic">// sds.h:39</span>
+<span style="color: #859900">typedef</span> <span style="color: #859900">char</span> <span style="color: #839496">*</span><span style="color: #93a1a1">sds</span><span style="color: #839496">;</span>
+</pre></div>
+
+<p>The prefix of <em>sds</em> contains a length of string and remaining allocated memory. They are packed to <strong>sdshdr</strong>:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #586e75; font-style: italic">// sds.h:41</span>
+<span style="color: #859900">struct</span> <span style="color: #93a1a1">sdshdr</span> <span style="color: #839496">{</span>
+    <span style="color: #859900">unsigned</span> <span style="color: #859900">int</span> <span style="color: #93a1a1">len</span><span style="color: #839496">;</span>
+    <span style="color: #859900">unsigned</span> <span style="color: #859900">int</span> <span style="color: #93a1a1">free</span><span style="color: #839496">;</span>
+    <span style="color: #859900">char</span> <span style="color: #93a1a1">buf</span><span style="color: #839496">[];</span> <span style="color: #586e75; font-style: italic">// sds</span>
+<span style="color: #839496">};</span>
+</pre></div>
+
+<p>and this is the core data structure of <em>sds</em>. Most part of <em>sds.c</em> implements basic string functions such as copy, concatenation, capitalization and even string formatting for <em>sds</em> because standard string functions are unavailable.</p>
+
+<h2 id="instantiation-and-extension-of-sds">Instantiation and extension of sds</h2>
+
+<p>Here, I introduce two important functions out of over thirty in <em>sds.c</em>. The first function is <em>sdsnewlen</em> which creates new sds from a given string:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #586e75; font-style: italic">// sds.c:51</span>
+<span style="color: #93a1a1">sds</span> <span style="color: #268bd2">sdsnewlen</span><span style="color: #839496">(</span><span style="color: #859900">const</span> <span style="color: #859900">void</span> <span style="color: #839496">*</span><span style="color: #93a1a1">init</span><span style="color: #839496">,</span> <span style="color: #859900">size_t</span> <span style="color: #93a1a1">initlen</span><span style="color: #839496">)</span> <span style="color: #839496">{</span>
+    <span style="color: #859900">struct</span> <span style="color: #93a1a1">sdshdr</span> <span style="color: #839496">*</span><span style="color: #93a1a1">sh</span><span style="color: #839496">;</span>
+
+    <span style="color: #586e75; font-style: italic">// memory allocation</span>
+    <span style="color: #859900">if</span> <span style="color: #839496">(</span><span style="color: #93a1a1">init</span><span style="color: #839496">)</span> <span style="color: #839496">{</span>
+        <span style="color: #93a1a1">sh</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">zmalloc</span><span style="color: #839496">(</span><span style="color: #859900">sizeof</span><span style="color: #839496">(</span><span style="color: #859900">struct</span> <span style="color: #93a1a1">sdshdr</span><span style="color: #839496">)+</span><span style="color: #93a1a1">initlen</span><span style="color: #839496">+</span><span style="color: #2aa198">1</span><span style="color: #839496">);</span>
+    <span style="color: #839496">}</span> <span style="color: #859900">else</span> <span style="color: #839496">{</span>
+        <span style="color: #93a1a1">sh</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">zcalloc</span><span style="color: #839496">(</span><span style="color: #859900">sizeof</span><span style="color: #839496">(</span><span style="color: #859900">struct</span> <span style="color: #93a1a1">sdshdr</span><span style="color: #839496">)+</span><span style="color: #93a1a1">initlen</span><span style="color: #839496">+</span><span style="color: #2aa198">1</span><span style="color: #839496">);</span>
+    <span style="color: #839496">}</span>
+    <span style="color: #859900">if</span> <span style="color: #839496">(</span><span style="color: #93a1a1">sh</span> <span style="color: #839496">==</span> <span style="color: #268bd2">NULL</span><span style="color: #839496">)</span> <span style="color: #859900">return</span> <span style="color: #268bd2">NULL</span><span style="color: #839496">;</span>
+
+    <span style="color: #586e75; font-style: italic">// store sizes</span>
+    <span style="color: #93a1a1">sh</span><span style="color: #839496">-&gt;</span><span style="color: #93a1a1">len</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">initlen</span><span style="color: #839496">;</span>
+    <span style="color: #93a1a1">sh</span><span style="color: #839496">-&gt;</span><span style="color: #93a1a1">free</span> <span style="color: #839496">=</span> <span style="color: #2aa198">0</span><span style="color: #839496">;</span>
+
+    <span style="color: #586e75; font-style: italic">// copy given string</span>
+    <span style="color: #859900">if</span> <span style="color: #839496">(</span><span style="color: #93a1a1">initlen</span> <span style="color: #839496">&amp;&amp;</span> <span style="color: #93a1a1">init</span><span style="color: #839496">)</span>
+        <span style="color: #93a1a1">memcpy</span><span style="color: #839496">(</span><span style="color: #93a1a1">sh</span><span style="color: #839496">-&gt;</span><span style="color: #93a1a1">buf</span><span style="color: #839496">,</span> <span style="color: #93a1a1">init</span><span style="color: #839496">,</span> <span style="color: #93a1a1">initlen</span><span style="color: #839496">);</span>
+    <span style="color: #93a1a1">sh</span><span style="color: #839496">-&gt;</span><span style="color: #93a1a1">buf</span><span style="color: #839496">[</span><span style="color: #93a1a1">initlen</span><span style="color: #839496">]</span> <span style="color: #839496">=</span> <span style="color: #2aa198">&#39;\0&#39;</span><span style="color: #839496">;</span>
+    <span style="color: #859900">return</span> <span style="color: #839496">(</span><span style="color: #859900">char</span><span style="color: #839496">*)</span><span style="color: #93a1a1">sh</span><span style="color: #839496">-&gt;</span><span style="color: #93a1a1">buf</span><span style="color: #839496">;</span>
+<span style="color: #839496">}</span>
+</pre></div>
+
+<p>It allocates a memory block for <em>sdshdr</em> at first. Actual size depends on a back-end malloc implementation for <em>zmalloc</em> and a CPU architecture. If the back-end is libc malloc and the architecture is 64-bit, it consumes 16 bytes for the whole prefix.</p>
+
+<p>The second function is <em>sdsMakeRoomFor</em> which ensures that a <em>sds</em> has at least <em>addlen</em> free memory for future string addition by extending memory if necessary:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #586e75; font-style: italic">// sds.c:129</span>
+<span style="color: #93a1a1">sds</span> <span style="color: #268bd2">sdsMakeRoomFor</span><span style="color: #839496">(</span><span style="color: #93a1a1">sds</span> <span style="color: #93a1a1">s</span><span style="color: #839496">,</span> <span style="color: #859900">size_t</span> <span style="color: #93a1a1">addlen</span><span style="color: #839496">)</span> <span style="color: #839496">{</span>
+    <span style="color: #859900">struct</span> <span style="color: #93a1a1">sdshdr</span> <span style="color: #839496">*</span><span style="color: #93a1a1">sh</span><span style="color: #839496">,</span> <span style="color: #839496">*</span><span style="color: #93a1a1">newsh</span><span style="color: #839496">;</span>
+    <span style="color: #859900">size_t</span> <span style="color: #93a1a1">free</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">sdsavail</span><span style="color: #839496">(</span><span style="color: #93a1a1">s</span><span style="color: #839496">);</span> <span style="color: #586e75; font-style: italic">// `free` value of sdshdr</span>
+    <span style="color: #859900">size_t</span> <span style="color: #93a1a1">len</span><span style="color: #839496">,</span> <span style="color: #93a1a1">newlen</span><span style="color: #839496">;</span>
+
+    <span style="color: #586e75; font-style: italic">// return original sds if it has enough free space</span>
+    <span style="color: #859900">if</span> <span style="color: #839496">(</span><span style="color: #93a1a1">free</span> <span style="color: #839496">&gt;=</span> <span style="color: #93a1a1">addlen</span><span style="color: #839496">)</span> <span style="color: #859900">return</span> <span style="color: #93a1a1">s</span><span style="color: #839496">;</span>
+
+    <span style="color: #586e75; font-style: italic">// calculate new length</span>
+    <span style="color: #93a1a1">len</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">sdslen</span><span style="color: #839496">(</span><span style="color: #93a1a1">s</span><span style="color: #839496">);</span>
+    <span style="color: #93a1a1">sh</span> <span style="color: #839496">=</span> <span style="color: #839496">(</span><span style="color: #859900">void</span><span style="color: #839496">*)</span> <span style="color: #839496">(</span><span style="color: #93a1a1">s</span><span style="color: #839496">-(</span><span style="color: #859900">sizeof</span><span style="color: #839496">(</span><span style="color: #859900">struct</span> <span style="color: #93a1a1">sdshdr</span><span style="color: #839496">)));</span>
+    <span style="color: #93a1a1">newlen</span> <span style="color: #839496">=</span> <span style="color: #839496">(</span><span style="color: #93a1a1">len</span><span style="color: #839496">+</span><span style="color: #93a1a1">addlen</span><span style="color: #839496">);</span>
+    <span style="color: #859900">if</span> <span style="color: #839496">(</span><span style="color: #93a1a1">newlen</span> <span style="color: #839496">&lt;</span> <span style="color: #93a1a1">SDS_MAX_PREALLOC</span><span style="color: #839496">)</span>
+        <span style="color: #93a1a1">newlen</span> <span style="color: #839496">*=</span> <span style="color: #2aa198">2</span><span style="color: #839496">;</span>
+    <span style="color: #859900">else</span>
+        <span style="color: #93a1a1">newlen</span> <span style="color: #839496">+=</span> <span style="color: #93a1a1">SDS_MAX_PREALLOC</span><span style="color: #839496">;</span>
+
+    <span style="color: #586e75; font-style: italic">// reallocate memory</span>
+    <span style="color: #93a1a1">newsh</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">zrealloc</span><span style="color: #839496">(</span><span style="color: #93a1a1">sh</span><span style="color: #839496">,</span> <span style="color: #859900">sizeof</span><span style="color: #839496">(</span><span style="color: #859900">struct</span> <span style="color: #93a1a1">sdshdr</span><span style="color: #839496">)+</span><span style="color: #93a1a1">newlen</span><span style="color: #839496">+</span><span style="color: #2aa198">1</span><span style="color: #839496">);</span>
+    <span style="color: #859900">if</span> <span style="color: #839496">(</span><span style="color: #93a1a1">newsh</span> <span style="color: #839496">==</span> <span style="color: #268bd2">NULL</span><span style="color: #839496">)</span> <span style="color: #859900">return</span> <span style="color: #268bd2">NULL</span><span style="color: #839496">;</span>
+
+    <span style="color: #93a1a1">newsh</span><span style="color: #839496">-&gt;</span><span style="color: #93a1a1">free</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">newlen</span> <span style="color: #839496">-</span> <span style="color: #93a1a1">len</span><span style="color: #839496">;</span>
+    <span style="color: #859900">return</span> <span style="color: #93a1a1">newsh</span><span style="color: #839496">-&gt;</span><span style="color: #93a1a1">buf</span><span style="color: #839496">;</span>
+<span style="color: #839496">}</span>
+</pre></div>
+
+<p>This function allocates twice as much memory as the minimum capacity where a string with <em>addlen</em> size can be added but the additional size of this pre-allocation is bounded by <em>SDS_MAX_PREALLOC</em> (1MB). Then, it reallocates the memory of sds by <em>zrealloc</em>. For all I know, <em>zrealloc</em> can return brand new memory block when it cannot extend the original block. Thus, all references to the original sds must be replaced by the return value.</p>
+
+<h2 id="other-functions">Other functions</h2>
+
+<p>Other functions in <em>sds.c</em> would be easy-to-read with above basic knowledge for <em>sds</em> though <em>sdscatfmt</em> for formatting and <em>sdssplitargs</em> for splitting a string like function arguments are little bit long and tricky.</p>
+
+
+  <script>window.twttr = (function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0],
+  t = window.twttr || {};
+  if (d.getElementById(id)) return t;
+  js = d.createElement(s);
+  js.id = id;
+  js.src = "https://platform.twitter.com/widgets.js";
+  fjs.parentNode.insertBefore(js, fjs);
+
+  t._e = [];
+  t.ready = function(f) {
+  t._e.push(f);
+  };
+
+  return t;
+  }(document, "script", "twitter-wjs"));</script>
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.8";
+  fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));</script>
+
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+
+<div class="share">
+  <div>
+    <div class="share-button">
+      <a class="twitter-share-button"
+         href="https://twitter.com/intent/tweet?text=Redis%20code%20reading%3a%20sds&nbsp;-&nbsp;saidie%27s%20log&amp;url=https%3a%2f%2fsaidie.github.io%2fpost%2fredis_code_reading_sds%2f&amp;via=siedie">
+        Tweet
+      </a>
+    </div>
+    <div class="share-button">
+    <div class="fb-share-button" data-href="https://saidie.github.io/post/redis_code_reading_sds/" data-layout="box_count" data-size="small">
+      <a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fsaidie.github.io%2fpost%2fredis_code_reading_sds%2f&amp;src=sdkpreparse">シェア</a>
+    </div>
+    </div>
+    <div class="share-button">
+    <g:plus action="share" data-href="https://saidie.github.io/post/redis_code_reading_sds/" data-annotation="bubble"></g:plus>
+    </div>
+  </div>
+</div>
+
+
+  
+<div class="prev-next-post pure-g">
+  <div class="pure-u-1-24" style="text-align: left;">
+    
+    <a href="https://saidie.github.io/post/redis_code_reading_zmalloc/"><i class="fa fa-chevron-left"></i></a>
+    
+  </div>
+  <div class="pure-u-10-24">
+    
+    <nav class="prev">
+      <a href="https://saidie.github.io/post/redis_code_reading_zmalloc/">Redis code reading: zmalloc</a>
+    </nav>
+    
+  </div>
+  <div class="pure-u-2-24">
+    &nbsp;
+  </div>
+  <div class="pure-u-10-24">
+    
+    <nav class="next">
+      <a href="https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part1/">Dijkstra&#39;s algorithm by Redis and Lua (1 of 2)</a>
+    </nav>
+    
+  </div>
+  <div class="pure-u-1-24" style="text-align: right;">
+    
+    <a href="https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part1/"><i class="fa fa-chevron-right"></i></a>
+    
+  </div>
+</div>
+
+
+
+  
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'saidie-log';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+</div>
+
+</div>
+</div>
+<script src="https://saidie.github.io/js/ui.js"></script>
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-88021039-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+</body>
+</html>
+

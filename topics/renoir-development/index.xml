@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Renoir Development on saidie&#39;s log</title>
+    <link>https://saidie.github.io/topics/renoir-development/index.xml</link>
+    <description>Recent content in Renoir Development on saidie&#39;s log</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>Hiroshi Saito &amp;copy; 2016. All rights reserved.</copyright>
+    <atom:link href="https://saidie.github.io/topics/renoir-development/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Introduction to Renoir</title>
+      <link>https://saidie.github.io/post/introduction_to_renoir/</link>
+      <pubDate>Wed, 01 Mar 2017 14:32:00 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/introduction_to_renoir/</guid>
+      <description>
+
+&lt;p&gt;About a month ago, I released a &amp;ldquo;production ready&amp;rdquo; Redis cluster client library for Ruby. It is named &lt;strong&gt;Renoir&lt;/strong&gt; and was pushed to rubygems.org: &lt;a href=&#34;https://rubygems.org/gems/renoir&#34;&gt;https://rubygems.org/gems/renoir&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;It was surprising that there had been no reliable Redis Cluster client library for Ruby in spite of the fact that Redis 3.0 had been released about two years ago. In fact, there exist several implementations but their README always say like &amp;ldquo;this library is not yet production ready.&amp;rdquo; Because a reliable library are needed for my work, I tried to develop such a library, and now it would reach a certain degree of quality. This post gives a brief introduction to Renoir; a concept and current features are explained.&lt;/p&gt;
+
+&lt;h2 id=&#34;renoir-example&#34;&gt;Renoir Example&lt;/h2&gt;
+
+&lt;p&gt;For example, Renoir could be used like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #268bd2&#34;&gt;require&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;renoir&amp;#39;&lt;/span&gt;
+
+&lt;span style=&#34;color: #93a1a1&#34;&gt;rc&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #b58900&#34;&gt;Renoir&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;::&lt;/span&gt;&lt;span style=&#34;color: #b58900&#34;&gt;Client&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;new&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;cluster_nodes&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;[&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;127.0.0.1:30001&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;])&lt;/span&gt;
+
+&lt;span style=&#34;color: #268bd2&#34;&gt;p&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;rc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;set&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;hoge&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;123&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;nx&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color: #cb4b16&#34;&gt;true&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;# keyslot is 1525&lt;/span&gt;
+&lt;span style=&#34;color: #268bd2&#34;&gt;p&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;rc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;zrange&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;fuga&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;0&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;-&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;with_scores&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color: #cb4b16&#34;&gt;true&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;# keyslot is 9097&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Suppose that a Redis cluster is running and one of the cluster nodes is listening the port 30001 on the local host. The initializer of &lt;code&gt;Renoir::Client&lt;/code&gt; takes at least an address of a node in a cluster and remaining node addresses will be automatically retrieved. In this example, &lt;code&gt;SET&lt;/code&gt; and &lt;code&gt;ZRANGE&lt;/code&gt; commands are sent to the cluster. Because the keys for these commands have different &amp;ldquo;keyslots&amp;rdquo;, each command have to be sent to different nodes unless those keyslots are assigned to same node. But you don&amp;rsquo;t need to worry about that here because the primary job of Renoir is to manage such directions automatically.&lt;/p&gt;
+
+&lt;p&gt;You may notice that the methods and arguments of &lt;code&gt;Renoir::Client&lt;/code&gt; are same as the &lt;a href=&#34;https://rubygems.org/gems/redis&#34;&gt;redis gem&lt;/a&gt;. So it is! Renoir is designed to provide compatible interface with the redis gem. Thus you can communicate with a Redis cluster as well as communicating with single Redis server by the &lt;code&gt;redis&lt;/code&gt; gem.&lt;/p&gt;
+
+&lt;p&gt;If you would like to test this code, execute &lt;code&gt;gem install renoir&lt;/code&gt; and create a Redis cluster on local machine with a node listening port 30001 (&lt;a href=&#34;https://redis.io/topics/cluster-tutorial#creating-a-redis-cluster-using-the-create-cluster-script&#34;&gt;the official &lt;code&gt;create-cluster&lt;/code&gt; script&lt;/a&gt; is useful to create such a cluster).&lt;/p&gt;
+
+&lt;h2 id=&#34;features&#34;&gt;Features&lt;/h2&gt;
+
+&lt;h3 id=&#34;handling-moved-ask-redirections&#34;&gt;Handling MOVED/ASK redirections&lt;/h3&gt;
+
+&lt;p&gt;Of course, this is the main feature. User can send commands to Redis cluster in a similar manner as sending ones to a single Redis instance because Renoir catches MOVED/ASK redirection responses and resend commands to an appropriate node automatically. Note that the number of redirections can be limited by &lt;code&gt;max_redirection&lt;/code&gt; option to prevent too many redirections.&lt;/p&gt;
+
+&lt;h3 id=&#34;maintaining-cluster-information&#34;&gt;Maintaining cluster information&lt;/h3&gt;
+
+&lt;p&gt;Renoir maintains information of a cluster. In particular, keyslots assignment information is important because a target node, which holds a key(slot) of a command, could be determined without sending request, i.e., probability of redirection and then latency are dramatically reduced. Although master/slave information is available, all commands are sent to only master nodes and there is no plan to support slaves so far.&lt;/p&gt;
+
+&lt;h3 id=&#34;validating-singleness-of-command-keyslots&#34;&gt;Validating singleness of command keyslots&lt;/h3&gt;
+
+&lt;p&gt;Renoir checks whether keyslots of keys in a command are all the same before sending and the command fails if it is not. This is fine because sending a command accessing multi-keyslots is useless. Besides, Renoir basically refuses a command without a key because a target node is unknown. Sending a command to all nodes could be an option but it would be scary to use because request timing is uncontrollable by user. Instead, &lt;code&gt;Renoir::Client#each_node&lt;/code&gt; method could be used to send no-key commands in more controllable way, like this:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;keys&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;rc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;each_node&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;flat_map&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;do&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;|&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;node&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;|&lt;/span&gt; &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;# node is a `::Redis` instance&lt;/span&gt;
+  &lt;span style=&#34;color: #268bd2&#34;&gt;sleep&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;0&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;01&lt;/span&gt;
+  &lt;span style=&#34;color: #93a1a1&#34;&gt;node&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;keys&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;test_*&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+&lt;span style=&#34;color: #859900&#34;&gt;end&lt;/span&gt;
+
+&lt;span style=&#34;color: #93a1a1&#34;&gt;rc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;each_node&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&amp;amp;&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;:bgsave&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&#34;supporting-transaction-and-command-pipelining&#34;&gt;Supporting transaction and command pipelining&lt;/h3&gt;
+
+&lt;p&gt;&lt;code&gt;Renoir::Client#multi&lt;/code&gt; and &lt;code&gt;#pipelined&lt;/code&gt; could be used for transaction and command pipelining:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;rc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;multi&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;do&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;|&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;tx&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;|&lt;/span&gt;
+  &lt;span style=&#34;color: #93a1a1&#34;&gt;tx&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;set&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;hoge{1}&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;123&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+  &lt;span style=&#34;color: #93a1a1&#34;&gt;tx&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;get&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;hoge{1}&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+  &lt;span style=&#34;color: #93a1a1&#34;&gt;tx&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;get&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;fuga{1}&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+&lt;span style=&#34;color: #859900&#34;&gt;end&lt;/span&gt;
+
+&lt;span style=&#34;color: #93a1a1&#34;&gt;rc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;pipelined&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;do&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;|&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;pipeline&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;|&lt;/span&gt;
+  &lt;span style=&#34;color: #93a1a1&#34;&gt;pipeline&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;set&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;hoge{1}&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;123&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+  &lt;span style=&#34;color: #93a1a1&#34;&gt;pipeline&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;get&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;hoge{1}&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+  &lt;span style=&#34;color: #93a1a1&#34;&gt;pipeline&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;get&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;fuga{1}&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+&lt;span style=&#34;color: #859900&#34;&gt;end&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The commands will be sent to a node only if all keyslots of the commands are same. Hence it is highly recommended to use &lt;a href=&#34;https://redis.io/topics/cluster-spec#keys-hash-tags&#34;&gt;keys hash tags&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Unfortunately, these commands are not well compatible with the ones of the &lt;code&gt;redis&lt;/code&gt; gem; a return value of a command inside the block is useless because a &amp;ldquo;future&amp;rdquo; variable is not yet supported. All responses are returned as a return value of &lt;code&gt;#multi&lt;/code&gt;/&lt;code&gt;#pipelined&lt;/code&gt;, though.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;This gem has been used at my work for a messaging delivery system which handles millions of requests in a minute and it works very well so far. But it lacks real world examples. So it would be greatly appreciated if you could use it!&lt;/p&gt;
+
+&lt;p&gt;The source code is available on GitHub: &lt;a href=&#34;https://github.com/saidie/renoir&#34;&gt;https://github.com/saidie/renoir&lt;/a&gt; and documentation is also available: &lt;a href=&#34;http://www.rubydoc.info/gems/renoir&#34;&gt;http://www.rubydoc.info/gems/renoir&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h3 id=&#34;future-work&#34;&gt;Future work&lt;/h3&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Support &amp;ldquo;future&amp;rdquo; variables in &lt;code&gt;#multi&lt;/code&gt; and &lt;code&gt;#pipelined&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Add a connection adapter for the &lt;code&gt;redic&lt;/code&gt; gem&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;acknowledgment&#34;&gt;Acknowledgment&lt;/h3&gt;
+
+&lt;p&gt;My code is originated to &lt;a href=&#34;https://github.com/antirez/redis-rb-cluster&#34;&gt;the first reference implementation by antirez&lt;/a&gt;.&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

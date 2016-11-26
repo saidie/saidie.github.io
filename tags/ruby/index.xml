@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ruby on saidie&#39;s log</title>
+    <link>https://saidie.github.io/tags/ruby/</link>
+    <description>Recent content in Ruby on saidie&#39;s log</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>Hiroshi Saito &amp;copy; 2016. All rights reserved.</copyright>
+    <lastBuildDate>Wed, 01 Mar 2017 14:32:00 +0900</lastBuildDate>
+    
+	<atom:link href="https://saidie.github.io/tags/ruby/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Introduction to Renoir</title>
+      <link>https://saidie.github.io/post/introduction_to_renoir/</link>
+      <pubDate>Wed, 01 Mar 2017 14:32:00 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/introduction_to_renoir/</guid>
+      <description>About a month ago, I released a &amp;ldquo;production ready&amp;rdquo; Redis cluster client library for Ruby. It is named Renoir and was pushed to rubygems.org: https://rubygems.org/gems/renoir.
+It was surprising that there had been no reliable Redis Cluster client library for Ruby in spite of the fact that Redis 3.0 had been released about two years ago. In fact, there exist several implementations but their README always say like &amp;ldquo;this library is not yet production ready.</description>
+    </item>
+    
+  </channel>
+</rss>

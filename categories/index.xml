@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Categories on saidie&#39;s log</title>
+    <link>https://saidie.github.io/categories/</link>
+    <description>Recent content in Categories on saidie&#39;s log</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>Hiroshi Saito &amp;copy; 2016. All rights reserved.</copyright>
+    
+	<atom:link href="https://saidie.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Redis_code_reading</title>
+      <link>https://saidie.github.io/categories/redis_code_reading/</link>
+      <pubDate>Mon, 07 Dec 2015 08:31:29 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/categories/redis_code_reading/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Redis_lua_scripting</title>
+      <link>https://saidie.github.io/categories/redis_lua_scripting/</link>
+      <pubDate>Tue, 29 Dec 2015 01:30:53 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/categories/redis_lua_scripting/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Renoir_development</title>
+      <link>https://saidie.github.io/categories/renoir_development/</link>
+      <pubDate>Wed, 01 Mar 2017 14:32:00 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/categories/renoir_development/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Rust_tips</title>
+      <link>https://saidie.github.io/categories/rust_tips/</link>
+      <pubDate>Tue, 18 Apr 2017 19:50:30 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/categories/rust_tips/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>

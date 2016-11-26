@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Redis_code_reading on saidie&#39;s log</title>
+    <link>https://saidie.github.io/categories/redis_code_reading/</link>
+    <description>Recent content in Redis_code_reading on saidie&#39;s log</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>Hiroshi Saito &amp;copy; 2016. All rights reserved.</copyright>
+    <lastBuildDate>Mon, 07 Dec 2015 08:31:29 +0900</lastBuildDate>
+    
+	<atom:link href="https://saidie.github.io/categories/redis_code_reading/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Redis code reading: sds</title>
+      <link>https://saidie.github.io/post/redis_code_reading_sds/</link>
+      <pubDate>Mon, 07 Dec 2015 08:31:29 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/redis_code_reading_sds/</guid>
+      <description>Last weekend, I read and summarized zmalloc.c which provides basic memory allocation mechanisms of Redis. In this weekend, I explored sds.c which implements many functions to manage a dynamic string efficiently; in fact, &amp;ldquo;sds&amp;rdquo; stands for Simple Dynamic String. This post describes a core of sds implementations. The version of Redis is 3.0.5. I put some comments on following code snippets.
+sds is just a char pointer with hidden header As well as zmalloc family, sds implicitly keeps track of available size and length of string by placing them on its (hidden) prefix.</description>
+    </item>
+    
+    <item>
+      <title>Redis code reading: zmalloc</title>
+      <link>https://saidie.github.io/post/redis_code_reading_zmalloc/</link>
+      <pubDate>Sun, 29 Nov 2015 23:08:35 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/redis_code_reading_zmalloc/</guid>
+      <description>This post explains some fundamental functions of memory allocation used in Redis. These functions are kind of wrapper to hide architecture-dependent implementations and to keep track of the size of total allocated memory. The version of Redis is 3.0.5.
+Available Backend Implementations A backend memory allocator of zmalloc can be one of the following:
+ libc malloc  Default except Linux.  jemmaloc  http://www.canonware.com/jemalloc/ It seems less fragmentation than libc malloc.</description>
+    </item>
+    
+    <item>
+      <title>Visualize rough Redis source code dependencies</title>
+      <link>https://saidie.github.io/post/visualize_redis_source_code_dependencies/</link>
+      <pubDate>Sun, 22 Nov 2015 15:17:55 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/visualize_redis_source_code_dependencies/</guid>
+      <description>Now, I&amp;rsquo;m getting interested in Redis. The concept of Redis seems to be different from other general purpose database like relational, document, graph databases; each of these employs a one-size-fits-all data model. By no free lunch theorem, these databases cannot store and fetch some kind of data efficiently. Some of this data can be efficiently handled by Redis since it provides specialized and primitive data structures. This specialty attracts me.</description>
+    </item>
+    
+  </channel>
+</rss>

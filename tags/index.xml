@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tags on saidie&#39;s log</title>
+    <link>https://saidie.github.io/tags/</link>
+    <description>Recent content in Tags on saidie&#39;s log</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>Hiroshi Saito &amp;copy; 2016. All rights reserved.</copyright>
+    <lastBuildDate>Tue, 29 Dec 2015 01:30:53 +0900</lastBuildDate>
+    
+	<atom:link href="https://saidie.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Algorithm</title>
+      <link>https://saidie.github.io/tags/algorithm/</link>
+      <pubDate>Tue, 29 Dec 2015 01:30:53 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/tags/algorithm/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Lua</title>
+      <link>https://saidie.github.io/tags/lua/</link>
+      <pubDate>Tue, 29 Dec 2015 01:30:53 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/tags/lua/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Oss</title>
+      <link>https://saidie.github.io/tags/oss/</link>
+      <pubDate>Wed, 01 Mar 2017 14:32:00 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/tags/oss/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Redis</title>
+      <link>https://saidie.github.io/tags/redis/</link>
+      <pubDate>Wed, 01 Mar 2017 14:32:00 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/tags/redis/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Redis Cluster</title>
+      <link>https://saidie.github.io/tags/redis-cluster/</link>
+      <pubDate>Wed, 01 Mar 2017 14:32:00 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/tags/redis-cluster/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Ruby</title>
+      <link>https://saidie.github.io/tags/ruby/</link>
+      <pubDate>Wed, 01 Mar 2017 14:32:00 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/tags/ruby/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Rust</title>
+      <link>https://saidie.github.io/tags/rust/</link>
+      <pubDate>Tue, 18 Apr 2017 19:50:30 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/tags/rust/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>

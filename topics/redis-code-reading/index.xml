@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Redis Code Reading on saidie&#39;s log</title>
+    <link>https://saidie.github.io/topics/redis-code-reading/index.xml</link>
+    <description>Recent content in Redis Code Reading on saidie&#39;s log</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>Hiroshi Saito &amp;copy; 2016. All rights reserved.</copyright>
+    <atom:link href="https://saidie.github.io/topics/redis-code-reading/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Redis code reading: sds</title>
+      <link>https://saidie.github.io/post/redis_code_reading_sds/</link>
+      <pubDate>Mon, 07 Dec 2015 08:31:29 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/redis_code_reading_sds/</guid>
+      <description>
+
+&lt;p&gt;Last weekend, I read and summarized &lt;em&gt;zmalloc.c&lt;/em&gt; which provides basic memory allocation mechanisms of Redis. In this weekend, I explored &lt;em&gt;sds.c&lt;/em&gt; which implements many functions to manage a dynamic string efficiently; in fact, &amp;ldquo;sds&amp;rdquo; stands for Simple Dynamic String. This post describes a core of &lt;em&gt;sds&lt;/em&gt; implementations.
+The version of Redis is 3.0.5. I put some comments on following code snippets.&lt;/p&gt;
+
+&lt;h2 id=&#34;sds-is-just-a-char-pointer-with-hidden-header&#34;&gt;sds is just a char pointer with hidden header&lt;/h2&gt;
+
+&lt;p&gt;As well as &lt;em&gt;zmalloc&lt;/em&gt; family, &lt;em&gt;sds&lt;/em&gt; implicitly keeps track of available size and length of string by placing them on its (hidden) prefix. Actually, &lt;em&gt;sds&lt;/em&gt; is defined as a &lt;em&gt;char&lt;/em&gt; pointer:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// sds.h:39&lt;/span&gt;
+&lt;span style=&#34;color: #859900&#34;&gt;typedef&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;char&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;sds&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The prefix of &lt;em&gt;sds&lt;/em&gt; contains a length of string and remaining allocated memory. They are packed to &lt;strong&gt;sdshdr&lt;/strong&gt;:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// sds.h:41&lt;/span&gt;
+&lt;span style=&#34;color: #859900&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;sdshdr&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;{&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;unsigned&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;int&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;len&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;unsigned&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;int&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;free&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;char&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;buf&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;[];&lt;/span&gt; &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// sds&lt;/span&gt;
+&lt;span style=&#34;color: #839496&#34;&gt;};&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;and this is the core data structure of &lt;em&gt;sds&lt;/em&gt;. Most part of &lt;em&gt;sds.c&lt;/em&gt; implements basic string functions such as copy, concatenation, capitalization and even string formatting for &lt;em&gt;sds&lt;/em&gt; because standard string functions are unavailable.&lt;/p&gt;
+
+&lt;h2 id=&#34;instantiation-and-extension-of-sds&#34;&gt;Instantiation and extension of sds&lt;/h2&gt;
+
+&lt;p&gt;Here, I introduce two important functions out of over thirty in &lt;em&gt;sds.c&lt;/em&gt;. The first function is &lt;em&gt;sdsnewlen&lt;/em&gt; which creates new sds from a given string:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// sds.c:51&lt;/span&gt;
+&lt;span style=&#34;color: #93a1a1&#34;&gt;sds&lt;/span&gt; &lt;span style=&#34;color: #268bd2&#34;&gt;sdsnewlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;void&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;init&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;size_t&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;initlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;{&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;sdshdr&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// memory allocation&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;init&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;{&lt;/span&gt;
+        &lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;zmalloc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;sizeof&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;sdshdr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)+&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;initlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+    &lt;span style=&#34;color: #839496&#34;&gt;}&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;else&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;{&lt;/span&gt;
+        &lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;zcalloc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;sizeof&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;sdshdr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)+&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;initlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+    &lt;span style=&#34;color: #839496&#34;&gt;}&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;==&lt;/span&gt; &lt;span style=&#34;color: #268bd2&#34;&gt;NULL&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color: #268bd2&#34;&gt;NULL&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// store sizes&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;len&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;initlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;free&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;0&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// copy given string&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;initlen&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;init&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+        &lt;span style=&#34;color: #93a1a1&#34;&gt;memcpy&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;buf&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;init&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;initlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;buf&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;[&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;initlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;]&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;\0&amp;#39;&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;char&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;*)&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;buf&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+&lt;span style=&#34;color: #839496&#34;&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It allocates a memory block for &lt;em&gt;sdshdr&lt;/em&gt; at first. Actual size depends on a back-end malloc implementation for &lt;em&gt;zmalloc&lt;/em&gt; and a CPU architecture. If the back-end is libc malloc and the architecture is 64-bit, it consumes 16 bytes for the whole prefix.&lt;/p&gt;
+
+&lt;p&gt;The second function is &lt;em&gt;sdsMakeRoomFor&lt;/em&gt; which ensures that a &lt;em&gt;sds&lt;/em&gt; has at least &lt;em&gt;addlen&lt;/em&gt; free memory for future string addition by extending memory if necessary:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// sds.c:129&lt;/span&gt;
+&lt;span style=&#34;color: #93a1a1&#34;&gt;sds&lt;/span&gt; &lt;span style=&#34;color: #268bd2&#34;&gt;sdsMakeRoomFor&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;sds&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;s&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;size_t&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;addlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;{&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;sdshdr&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;newsh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;size_t&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;free&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;sdsavail&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;s&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt; &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// `free` value of sdshdr&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;size_t&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;len&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;newlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// return original sds if it has enough free space&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;free&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;&amp;gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;addlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;s&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// calculate new length&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;len&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;sdslen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;s&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;void&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;*)&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;s&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;-(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;sizeof&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;sdshdr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)));&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;newlen&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;len&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;addlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;newlen&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;SDS_MAX_PREALLOC&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt;
+        &lt;span style=&#34;color: #93a1a1&#34;&gt;newlen&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*=&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;2&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;else&lt;/span&gt;
+        &lt;span style=&#34;color: #93a1a1&#34;&gt;newlen&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;+=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;SDS_MAX_PREALLOC&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// reallocate memory&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;newsh&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;zrealloc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;sh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;sizeof&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;sdshdr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)+&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;newlen&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;newsh&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;==&lt;/span&gt; &lt;span style=&#34;color: #268bd2&#34;&gt;NULL&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color: #268bd2&#34;&gt;NULL&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;newsh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;free&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;newlen&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;-&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;len&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;newsh&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;buf&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+&lt;span style=&#34;color: #839496&#34;&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This function allocates twice as much memory as the minimum capacity where a string with &lt;em&gt;addlen&lt;/em&gt; size can be added but the additional size of this pre-allocation is bounded by &lt;em&gt;SDS_MAX_PREALLOC&lt;/em&gt; (1MB). Then, it reallocates the memory of sds by &lt;em&gt;zrealloc&lt;/em&gt;. For all I know, &lt;em&gt;zrealloc&lt;/em&gt; can return brand new memory block when it cannot extend the original block. Thus, all references to the original sds must be replaced by the return value.&lt;/p&gt;
+
+&lt;h2 id=&#34;other-functions&#34;&gt;Other functions&lt;/h2&gt;
+
+&lt;p&gt;Other functions in &lt;em&gt;sds.c&lt;/em&gt; would be easy-to-read with above basic knowledge for &lt;em&gt;sds&lt;/em&gt; though &lt;em&gt;sdscatfmt&lt;/em&gt; for formatting and &lt;em&gt;sdssplitargs&lt;/em&gt; for splitting a string like function arguments are little bit long and tricky.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Redis code reading: zmalloc</title>
+      <link>https://saidie.github.io/post/redis_code_reading_zmalloc/</link>
+      <pubDate>Sun, 29 Nov 2015 23:08:35 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/redis_code_reading_zmalloc/</guid>
+      <description>
+
+&lt;p&gt;This post explains some fundamental functions of memory allocation used in Redis. These functions are kind of wrapper to hide architecture-dependent implementations and to keep track of the size of total allocated memory.
+The version of Redis is 3.0.5.&lt;/p&gt;
+
+&lt;h2 id=&#34;available-backend-implementations&#34;&gt;Available Backend Implementations&lt;/h2&gt;
+
+&lt;p&gt;A backend memory allocator of &lt;em&gt;zmalloc&lt;/em&gt; can be one of the following:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;libc malloc
+
+&lt;ul&gt;
+&lt;li&gt;Default except Linux.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;jemmaloc
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.canonware.com/jemalloc/&#34;&gt;http://www.canonware.com/jemalloc/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;It seems less fragmentation than libc malloc. Default in Linux.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;TCMalloc (Thread-Caching malloc)
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://goog-perftools.sourceforge.net/doc/tcmalloc.html&#34;&gt;http://goog-perftools.sourceforge.net/doc/tcmalloc.html&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;It seems to be suited for multi-threaded program.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;You can switch these backends at compile time.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;zmalloc&lt;/em&gt; delegates an actual memory operation to a corresponding backend function and its primary role is to keep track of the size of allocated memory. Note that jemalloc, TCMalloc and default malloc in OS X already provide such a functionality.&lt;/p&gt;
+
+&lt;h2 id=&#34;strategy-to-maintain-allocated-memory-size&#34;&gt;Strategy to maintain allocated memory size&lt;/h2&gt;
+
+&lt;p&gt;Here is the definition of &lt;em&gt;zmalloc&lt;/em&gt;:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;void&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color: #268bd2&#34;&gt;zmalloc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;size_t&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;size&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It returns a poinrter to an allocated memory as well as &lt;em&gt;malloc&lt;/em&gt; and stores the total allocated memory. How to store it? It is very simple; just adds the size to a static global variable (with lock in thread-safe mode). However, this is insufficient because a size to subtract is unknown at memory deallocation.&lt;/p&gt;
+
+&lt;p&gt;Hence, Redis attaches size information at the prefix of every allocated memory.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://saidie.github.io/image/redis_code_reading_zmalloc/prefix1.png&#34; alt=&#34;prefix&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As this figure shows, actual memory size is &lt;code&gt;size+PREFIX_SIZE&lt;/code&gt; and the prefix holds the &lt;code&gt;size&lt;/code&gt;. Tricky part is that a returned pointer addresses to the location just after the prefix. Like this, &lt;em&gt;zmalloc&lt;/em&gt; behaves like &lt;em&gt;malloc&lt;/em&gt; and can keep track of memory size.&lt;/p&gt;
+
+&lt;h2 id=&#34;functions-in-zmalloc-h&#34;&gt;Functions in zmalloc.h&lt;/h2&gt;
+
+&lt;p&gt;Let&amp;rsquo;s take a look at some &lt;em&gt;zmalloc&lt;/em&gt; functions.
+(Caution: following code is modified for explanation)&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;void&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color: #268bd2&#34;&gt;zmalloc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;size_t&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;size&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;{&lt;/span&gt;
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// allocate size+PREFIX_SIZE memory&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;void&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;ptr&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;malloc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;size&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;PREFIX_SIZE&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// just handle OOM error&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(!&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;ptr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;zmalloc_oom_handler&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;size&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// store size to the prefix&lt;/span&gt;
+    &lt;span style=&#34;color: #839496&#34;&gt;*((&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;size_t&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;*)&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;ptr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #93a1a1&#34;&gt;size&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// add allocated size to a static global variable&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;update_zmalloc_stat_alloc&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;size&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;PREFIX_SIZE&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// return the pointer just after the prefix&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;char&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;*)&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;ptr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;PREFIX_SIZE&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+&lt;span style=&#34;color: #839496&#34;&gt;}&lt;/span&gt;
+
+&lt;span style=&#34;color: #859900&#34;&gt;void&lt;/span&gt; &lt;span style=&#34;color: #268bd2&#34;&gt;zfree&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;void&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;ptr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;{&lt;/span&gt;
+    &lt;span style=&#34;color: #859900&#34;&gt;if&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;ptr&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;==&lt;/span&gt; &lt;span style=&#34;color: #268bd2&#34;&gt;NULL&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;)&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;return&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;realptr&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;char&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;*)&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;ptr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;-&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;PREFIX_SIZE&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// restore the size in prefix&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;oldsize&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;*((&lt;/span&gt;&lt;span style=&#34;color: #859900&#34;&gt;size_t&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;*)&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;realptr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// subtract allocated size from a static global variable&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;update_zmalloc_stat_free&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;oldsize&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;PREFIX_SIZE&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+
+    &lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;// free entire memory&lt;/span&gt;
+    &lt;span style=&#34;color: #93a1a1&#34;&gt;free&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color: #93a1a1&#34;&gt;realptr&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;);&lt;/span&gt;
+&lt;span style=&#34;color: #839496&#34;&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It is very straightforward! Several other functions are provided in &lt;em&gt;zmalloc.c&lt;/em&gt;:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;em&gt;zcalloc&lt;/em&gt;, &lt;em&gt;zrealloc&lt;/em&gt; :: wrappers to &lt;em&gt;calloc&lt;/em&gt;, &lt;em&gt;realloc&lt;/em&gt; respectively&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;zstrdup&lt;/em&gt; :: duplicate an allocated memory&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;zmalloc_size&lt;/em&gt; :: return size of an allocated memory&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;zmalloc_used_memory&lt;/em&gt; :: return total allocated memory size&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;These are simple and easy to read, too (&lt;em&gt;zrealloc&lt;/em&gt; is little difficult though).&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Visualize rough Redis source code dependencies</title>
+      <link>https://saidie.github.io/post/visualize_redis_source_code_dependencies/</link>
+      <pubDate>Sun, 22 Nov 2015 15:17:55 +0900</pubDate>
+      
+      <guid>https://saidie.github.io/post/visualize_redis_source_code_dependencies/</guid>
+      <description>
+
+&lt;p&gt;Now, I&amp;rsquo;m getting interested in Redis.
+The concept of Redis seems to be different from other general purpose database like relational, document, graph databases; each of these employs a one-size-fits-all data model. By no free lunch theorem, these databases cannot store and fetch some kind of data efficiently. Some of this data can be efficiently handled by Redis since it provides specialized and primitive data structures.
+This specialty attracts me.&lt;/p&gt;
+
+&lt;p&gt;So, I intend to dig into Redis source codes. First step of code reading is to overview source codes and decide where to read. In this post, I visualize source code dependency graph.&lt;/p&gt;
+
+&lt;h2 id=&#34;graphviz-dot-utility&#34;&gt;Graphviz &lt;code&gt;dot&lt;/code&gt; utility&lt;/h2&gt;
+
+&lt;p&gt;A simple way to visualize a dependency graph is to use &lt;strong&gt;dot&lt;/strong&gt; utility program in &lt;a href=&#34;http://www.graphviz.org&#34;&gt;Graphviz&lt;/a&gt;. It can generate a graphical image from a plain text, e.g.,&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #586e75; font-style: italic&#34;&gt;# graph.dot&lt;/span&gt;
+digraph &lt;span style=&#34;color: #2aa198&#34;&gt;&amp;quot;graph&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;{&lt;/span&gt;
+  a -&amp;gt; b
+  a -&amp;gt; c
+  c -&amp;gt; d
+  c -&amp;gt; e
+&lt;span style=&#34;color: #839496&#34;&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This source represents a directed graph with 5 nodes &lt;em&gt;a&lt;/em&gt;, &lt;em&gt;b&lt;/em&gt;, &amp;hellip;, &lt;em&gt;e&lt;/em&gt; and 4 edges. Input this to dot:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;dot -T png -o graph.png &amp;gt; graph.dot
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Resulting output becomes:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://saidie.github.io/image/visualize_redis_source_code_dependencies/dot.png&#34; alt=&#34;Example of dot&#34; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;extract-source-code-dependencies&#34;&gt;Extract source code dependencies&lt;/h2&gt;
+
+&lt;p&gt;As above, we need to enumerate dependencies to visualize the graph but what source code dependency mean in fact? Here, I define a dependency is represented by &lt;code&gt;#include&lt;/code&gt; statements (Redis is written in C).
+Thus, dependencies are easily enumerated by a simple script like&lt;/p&gt;
+&lt;div class=&#34;highlight&#34; style=&#34;background: #002b36&#34;&gt;&lt;pre style=&#34;line-height: 125%&#34;&gt;&lt;span&gt;&lt;/span&gt;&lt;span style=&#34;color: #268bd2&#34;&gt;cd&lt;/span&gt; &lt;span style=&#34;color: #cb4b16&#34;&gt;$PATH_TO_REDIS_REPO&lt;/span&gt;
+&lt;span style=&#34;color: #268bd2&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;digraph &amp;quot;redis&amp;quot; {&amp;#39;&lt;/span&gt;
+&lt;span style=&#34;color: #859900&#34;&gt;for&lt;/span&gt; i in *.h&lt;span style=&#34;color: #839496&#34;&gt;;&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;do&lt;/span&gt;
+  &lt;span style=&#34;color: #859900&#34;&gt;for&lt;/span&gt; j in *.&lt;span style=&#34;color: #839496&#34;&gt;{&lt;/span&gt;h,c&lt;span style=&#34;color: #839496&#34;&gt;};&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;do&lt;/span&gt;
+    &lt;span style=&#34;color: #839496&#34;&gt;[[&lt;/span&gt; &lt;span style=&#34;color: #cb4b16&#34;&gt;${i&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;%.h&lt;/span&gt;&lt;span style=&#34;color: #cb4b16&#34;&gt;}&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color: #cb4b16&#34;&gt;${j&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;%.*&lt;/span&gt;&lt;span style=&#34;color: #cb4b16&#34;&gt;}&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;]]&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span style=&#34;color: #859900&#34;&gt;continue&lt;/span&gt;
+    grep -q -E &lt;span style=&#34;color: #2aa198&#34;&gt;&amp;quot;#include\s*[&amp;lt;\&amp;quot;]&lt;/span&gt;&lt;span style=&#34;color: #cb4b16&#34;&gt;${i}&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;[\&amp;quot;&amp;gt;]&amp;quot;&lt;/span&gt; &lt;span style=&#34;color: #cb4b16&#34;&gt;$j&lt;/span&gt; &lt;span style=&#34;color: #839496&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span style=&#34;color: #268bd2&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;&amp;quot;\&amp;quot;&lt;/span&gt;&lt;span style=&#34;color: #cb4b16&#34;&gt;${j&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;%.*&lt;/span&gt;&lt;span style=&#34;color: #cb4b16&#34;&gt;}&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;\&amp;quot; -&amp;gt; \&amp;quot;&lt;/span&gt;&lt;span style=&#34;color: #cb4b16&#34;&gt;${i&lt;/span&gt;&lt;span style=&#34;color: #839496&#34;&gt;%.*&lt;/span&gt;&lt;span style=&#34;color: #cb4b16&#34;&gt;}&lt;/span&gt;&lt;span style=&#34;color: #2aa198&#34;&gt;\&amp;quot;&amp;quot;&lt;/span&gt;
+  &lt;span style=&#34;color: #859900&#34;&gt;done&lt;/span&gt;
+&lt;span style=&#34;color: #859900&#34;&gt;done&lt;/span&gt;
+&lt;span style=&#34;color: #268bd2&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color: #2aa198&#34;&gt;&amp;#39;}&amp;#39;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;(Nested loop is to exclude header files not in Redis repository such as &lt;code&gt;stdin.h&lt;/code&gt;)&lt;/p&gt;
+
+&lt;p&gt;Here is the resulting dependency graph:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://saidie.github.io/image/visualize_redis_source_code_dependencies/redis1.png&#34;&gt;&lt;img src=&#34;https://saidie.github.io/image/visualize_redis_source_code_dependencies/redis1.png&#34; alt=&#34;First attempt&#34; width=&#34;100%&#34; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;A &lt;strong&gt;bit&lt;/strong&gt; complex. As you can see, almost source codes have dependency with &lt;code&gt;redis.h&lt;/code&gt;. So I remove this &lt;em&gt;trivial&lt;/em&gt; dependency and regenerated a graph:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://saidie.github.io/image/visualize_redis_source_code_dependencies/redis2.png&#34;&gt;&lt;img src=&#34;https://saidie.github.io/image/visualize_redis_source_code_dependencies/redis2.png&#34; alt=&#34;Second attempt&#34; width=&#34;100%&#34;&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Looks little bit clear! Maybe I should understand zmalloc first.&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

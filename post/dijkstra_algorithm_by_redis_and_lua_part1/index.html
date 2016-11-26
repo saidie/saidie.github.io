@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="generator" content="Hugo 0.21-DEV" />
+
+  <title>Dijkstra&#39;s algorithm by Redis and Lua (1 of 2) &middot; saidie&#39;s log</title>
+
+  
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css">
+
+  <!--[if lte IE 8]>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-old-ie-min.css">
+  <![endif]-->
+  <!--[if gt IE 8]><!-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-min.css">
+  <!--<![endif]-->
+
+  <!--[if lte IE 8]>
+  <link rel="stylesheet" href="https://saidie.github.io/css/side-menu-old-ie.css">
+  <![endif]-->
+  <!--[if gt IE 8]><!-->
+  <link rel="stylesheet" href="https://saidie.github.io/css/side-menu.css">
+  <!--<![endif]-->
+
+  <link rel="stylesheet" href="https://saidie.github.io/css/blackburn.css">
+
+  
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+  
+  <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet" type="text/css">
+
+  
+  
+
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  
+
+  <link rel="shortcut icon" href="https://saidie.github.io/img/favicon.ico" type="image/x-icon" />
+
+  
+    <link rel="stylesheet" href="https://saidie.github.io/css/style.css">
+  
+  
+
+</head>
+
+
+<body>
+<div id="layout">
+
+  
+<a href="#menu" id="menuLink" class="menu-link">
+  
+  <span></span>
+</a>
+<div id="menu">
+
+  
+  <a class="pure-menu-heading brand" href="https://saidie.github.io/">@saidie</a>
+
+
+  <div class="pure-menu">
+    <ul class="pure-menu-list">
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/post/"><i class='fa fa-list fa-fw'></i>Posts</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/about/"><i class='fa fa-user fa-fw'></i>About</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/categories/"><i class='fa fa-folder fa-fw'></i>Categories</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/tags/"><i class='fa fa-tags fa-fw'></i>Tags</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/"><i class='fa fa-home fa-fw'></i>Home</a>
+      
+        </li>
+      
+    </ul>
+  </div>
+
+  <div class="pure-menu social">
+  <ul class="pure-menu-list">
+
+    
+
+    
+
+    
+    <li class="pure-menu-item">
+      <a class="pure-menu-link" href="https://twitter.com/siedie" target="_blank"><i class="fa fa-twitter-square fa-fw"></i>Twitter</a>
+    </li>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <li class="pure-menu-item">
+      <a class="pure-menu-link" href="https://github.com/saidie" target="_blank"><i class="fa fa-github-square fa-fw"></i>GitHub</a>
+    </li>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+  </ul>
+</div>
+
+
+  <div>
+  <div class="small-print">
+    <small>Hiroshi Saito &copy; 2016. All rights reserved.</small>
+  </div>
+  <div class="small-print">
+    <small>Built with&nbsp;<a href="https://gohugo.io/" target="_blank">Hugo</a></small>
+    <small>Theme&nbsp;<a href="https://github.com/yoshiharuyamashita/blackburn" target="_blank">Blackburn</a></small>
+  </div>
+</div>
+
+</div>
+
+
+  <div id="main">
+
+
+<div class="header">
+  <h1>Dijkstra&#39;s algorithm by Redis and Lua (1 of 2)</h1>
+</div>
+<div class="content">
+
+  <div class="post-meta">
+
+  <div>
+    <i class="fa fa-calendar fa-fw"></i>
+    <time>2015-12-21 01:44</time>
+  </div>
+
+  
+
+  
+  
+  
+  <div>
+    <i class="fa fa-folder fa-fw"></i>
+    
+      <a class="post-taxonomy-category" href="https://saidie.github.io/categories/redis_lua_scripting">Redis_Lua_scripting</a>
+    
+  </div>
+  
+  
+
+  
+  
+  
+  <div>
+    <i class="fa fa-tags fa-fw"></i>
+    
+      <a class="post-taxonomy-tag" href="https://saidie.github.io/tags/redis">Redis</a>&nbsp;&#47;
+    
+      <a class="post-taxonomy-tag" href="https://saidie.github.io/tags/lua">Lua</a>&nbsp;&#47;
+    
+      <a class="post-taxonomy-tag" href="https://saidie.github.io/tags/algorithm">Algorithm</a>
+    
+  </div>
+  
+  
+
+</div>
+
+
+  
+
+<p>Redis provides several kind of data structures and many functions to manipulate those data. But sometimes additional function is required for satisfying some demand.</p>
+
+<h2 id="the-power-of-lua">The power of Lua</h2>
+
+<p>For example, you may need to delete a string only when the string is equal to a specified one but there is no such function. Although this is easy to implement by checking the equality of <strong>GET</strong>-ed string in client-side program and executing <strong>DEL</strong> command if necessary, it is difficult to make sure that this operation is atomic and you also have to implement a remote locking mechanism. Fortunately, this problem is easily solve because Redis has a great flexibility to extend its function by built-in Lua interpreter. <strong>EVAL</strong> and <strong>EVALSHA</strong> commands evaluate a Lua script atomically and you can execute Redis commands inside Lua script.</p>
+
+<p>Above function is implemented like this:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #586e75; font-style: italic">-- deleq.lua</span>
+<span style="color: #859900">if</span> <span style="color: #93a1a1">redis</span><span style="color: #839496">.</span><span style="color: #93a1a1">call</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;GET&#39;</span><span style="color: #839496">,</span> <span style="color: #93a1a1">KEYS</span><span style="color: #839496">[</span><span style="color: #2aa198">1</span><span style="color: #839496">])</span> <span style="color: #839496">==</span> <span style="color: #93a1a1">ARGV</span><span style="color: #839496">[</span><span style="color: #2aa198">1</span><span style="color: #839496">]</span> <span style="color: #859900">then</span>
+  <span style="color: #859900">return</span> <span style="color: #93a1a1">redis</span><span style="color: #839496">.</span><span style="color: #93a1a1">call</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;DEL&#39;</span><span style="color: #839496">,</span> <span style="color: #93a1a1">KEYS</span><span style="color: #839496">[</span><span style="color: #2aa198">1</span><span style="color: #839496">])</span>
+<span style="color: #859900">else</span>
+  <span style="color: #859900">return</span> <span style="color: #859900">nil</span>
+<span style="color: #859900">end</span>
+</pre></div>
+
+<p>Here is an example to delete <em>mykey</em> if its value is equal to <em>&ldquo;Redis&rdquo;</em>.</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span>% redis-cli SET mykey Redis
+OK
+
+% redis-cli EVAL <span style="color: #2aa198">&quot;</span><span style="color: #859900">$(</span>cat deleq.lua<span style="color: #859900">)</span><span style="color: #2aa198">&quot;</span> <span style="color: #2aa198">1</span> mykey Redis
+<span style="color: #839496">(</span>integer<span style="color: #839496">)</span> <span style="color: #2aa198">1</span>  <span style="color: #586e75; font-style: italic"># deleted !!</span>
+
+% redis-cli SET mykey redis
+OK
+
+% redis-cli EVAL <span style="color: #2aa198">&quot;</span><span style="color: #859900">$(</span>cat deleq.lua<span style="color: #859900">)</span><span style="color: #2aa198">&quot;</span> <span style="color: #2aa198">1</span> mykey Redis
+<span style="color: #839496">(</span>nil<span style="color: #839496">)</span>  <span style="color: #586e75; font-style: italic"># not deleted</span>
+</pre></div>
+
+<p>The detail of Lua script and meanings of arguments for <strong>EVAL</strong> are not explained in this post. There are already some good articles for learning: <a href="https://www.redisgreen.net/blog/intro-to-lua-for-redis-programmers/">Lua: A Guide for Redis Users</a> is a very good tutorial and <a href="http://redis.io/commands/EVAL">document of <strong>EVAL</strong></a> provides a wealth of content.</p>
+
+<h2 id="constructing-a-directed-graph-with-weighted-edges">Constructing a directed graph with weighted edges</h2>
+
+<p>As above, Redis becomes a computational environment rather than data store with the help of Lua. Although there are some restrictions on running Lua script in Redis, there still be a wide range of application.</p>
+
+<p>As an example, I wil try to implement the Dijkstra&rsquo;s shortest path algorithm. Before implementing the algorithm I need a data structure to represent a directed graph with weighted edges. In some usual programming languages, such a graph can be implemented as a list of lists. We can do similar by having a bunch of Redis&rsquo;s lists but I would like to put everything into a single object. So I pack a node pair into an integer value and associate a weight between the nodes to it. Suppose that nodes of graph are indexed from <em>0</em> to <em>n-1</em>, a edge from node <em>i</em> to node <em>j</em> can be represnted by <code>i*n + j</code>. Then, a Lua script to register weighted graphs edges can be implemented like this:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #586e75; font-style: italic">-- add_edge.lua</span>
+<span style="color: #859900">local</span> <span style="color: #859900">function</span> <span style="color: #268bd2">set_weight</span><span style="color: #839496">(</span><span style="color: #93a1a1">key</span><span style="color: #839496">,</span> <span style="color: #93a1a1">n</span><span style="color: #839496">,</span> <span style="color: #93a1a1">i</span><span style="color: #839496">,</span> <span style="color: #93a1a1">j</span><span style="color: #839496">,</span> <span style="color: #93a1a1">w</span><span style="color: #839496">)</span>
+  <span style="color: #93a1a1">redis</span><span style="color: #839496">.</span><span style="color: #93a1a1">call</span><span style="color: #839496">(</span><span style="color: #2aa198">&#39;HSET&#39;</span><span style="color: #839496">,</span> <span style="color: #93a1a1">key</span><span style="color: #839496">,</span> <span style="color: #93a1a1">n</span><span style="color: #839496">*</span><span style="color: #93a1a1">i</span> <span style="color: #839496">+</span> <span style="color: #93a1a1">j</span><span style="color: #839496">,</span> <span style="color: #93a1a1">w</span><span style="color: #839496">)</span>
+<span style="color: #859900">end</span>
+
+<span style="color: #859900">local</span> <span style="color: #93a1a1">n</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">ARGV</span><span style="color: #839496">[</span><span style="color: #2aa198">1</span><span style="color: #839496">]</span>
+<span style="color: #859900">local</span> <span style="color: #93a1a1">argc</span> <span style="color: #839496">=</span> <span style="color: #93a1a1">table</span><span style="color: #839496">.</span><span style="color: #93a1a1">getn</span><span style="color: #839496">(</span><span style="color: #93a1a1">ARGV</span><span style="color: #839496">)</span>
+
+<span style="color: #859900">for</span> <span style="color: #93a1a1">i</span> <span style="color: #839496">=</span> <span style="color: #2aa198">2</span><span style="color: #839496">,</span> <span style="color: #93a1a1">argc</span><span style="color: #839496">,</span> <span style="color: #2aa198">3</span> <span style="color: #859900">do</span>
+  <span style="color: #93a1a1">set_weight</span><span style="color: #839496">(</span><span style="color: #93a1a1">KEYS</span><span style="color: #839496">[</span><span style="color: #2aa198">1</span><span style="color: #839496">],</span> <span style="color: #93a1a1">n</span><span style="color: #839496">,</span> <span style="color: #93a1a1">ARGV</span><span style="color: #839496">[</span><span style="color: #93a1a1">i</span><span style="color: #839496">],</span> <span style="color: #93a1a1">ARGV</span><span style="color: #839496">[</span><span style="color: #93a1a1">i</span><span style="color: #839496">+</span><span style="color: #2aa198">1</span><span style="color: #839496">],</span> <span style="color: #93a1a1">ARGV</span><span style="color: #839496">[</span><span style="color: #93a1a1">i</span><span style="color: #839496">+</span><span style="color: #2aa198">2</span><span style="color: #839496">])</span>
+<span style="color: #859900">end</span>
+</pre></div>
+
+<p>This script takes a Redis key for storing information of edges, number of nodes and some edge triples in which each consists of source node index, destination node index and weight of the edge.</p>
+
+<p><img src="https://saidie.github.io/image/dijkstra_algorithm_by_redis_and_lua_part1/graph.png" alt="Graph" /></p>
+
+<p>For instance, above graph can be stored by following command.</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span>% redis-cli EVAL <span style="color: #2aa198">&quot;</span><span style="color: #859900">$(</span>cat add_edge.lua<span style="color: #859900">)</span><span style="color: #2aa198">&quot;</span> <span style="color: #2aa198">1</span> graph <span style="color: #cb4b16">\</span>
+        <span style="color: #2aa198">5</span> <span style="color: #2aa198">0</span> <span style="color: #2aa198">1</span> <span style="color: #2aa198">2</span> <span style="color: #2aa198">0</span> <span style="color: #2aa198">2</span> <span style="color: #2aa198">3</span> <span style="color: #2aa198">1</span> <span style="color: #2aa198">3</span> <span style="color: #2aa198">4</span> <span style="color: #2aa198">1</span> <span style="color: #2aa198">4</span> <span style="color: #2aa198">5</span> <span style="color: #2aa198">2</span> <span style="color: #2aa198">3</span> <span style="color: #2aa198">1</span> <span style="color: #2aa198">2</span> <span style="color: #2aa198">4</span> <span style="color: #2aa198">3</span> <span style="color: #2aa198">3</span> <span style="color: #2aa198">4</span> <span style="color: #2aa198">1</span>
+
+% redis-cli HGETALL graph
+<span style="color: #2aa198">1</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;1&quot;</span>
+<span style="color: #2aa198">2</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;2&quot;</span>
+<span style="color: #2aa198">3</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;2&quot;</span>
+<span style="color: #2aa198">4</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;3&quot;</span>
+<span style="color: #2aa198">5</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;8&quot;</span>
+<span style="color: #2aa198">6</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;4&quot;</span>
+<span style="color: #2aa198">7</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;9&quot;</span>
+<span style="color: #2aa198">8</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;5&quot;</span>
+<span style="color: #2aa198">9</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;13&quot;</span>
+<span style="color: #2aa198">10</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;1&quot;</span>
+<span style="color: #2aa198">11</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;14&quot;</span>
+<span style="color: #2aa198">12</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;3&quot;</span>
+<span style="color: #2aa198">13</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;19&quot;</span>
+<span style="color: #2aa198">14</span><span style="color: #839496">)</span> <span style="color: #2aa198">&quot;1&quot;</span>
+</pre></div>
+
+<p>In the next post, I will implement the Dijkstra&rsquo;s algorithm over this graph data structure!</p>
+
+
+  <script>window.twttr = (function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0],
+  t = window.twttr || {};
+  if (d.getElementById(id)) return t;
+  js = d.createElement(s);
+  js.id = id;
+  js.src = "https://platform.twitter.com/widgets.js";
+  fjs.parentNode.insertBefore(js, fjs);
+
+  t._e = [];
+  t.ready = function(f) {
+  t._e.push(f);
+  };
+
+  return t;
+  }(document, "script", "twitter-wjs"));</script>
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.8";
+  fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));</script>
+
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+
+<div class="share">
+  <div>
+    <div class="share-button">
+      <a class="twitter-share-button"
+         href="https://twitter.com/intent/tweet?text=Dijkstra%27s%20algorithm%20by%20Redis%20and%20Lua%20%281%20of%202%29&nbsp;-&nbsp;saidie%27s%20log&amp;url=https%3a%2f%2fsaidie.github.io%2fpost%2fdijkstra_algorithm_by_redis_and_lua_part1%2f&amp;via=siedie">
+        Tweet
+      </a>
+    </div>
+    <div class="share-button">
+    <div class="fb-share-button" data-href="https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part1/" data-layout="box_count" data-size="small">
+      <a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fsaidie.github.io%2fpost%2fdijkstra_algorithm_by_redis_and_lua_part1%2f&amp;src=sdkpreparse">シェア</a>
+    </div>
+    </div>
+    <div class="share-button">
+    <g:plus action="share" data-href="https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part1/" data-annotation="bubble"></g:plus>
+    </div>
+  </div>
+</div>
+
+
+  
+<div class="prev-next-post pure-g">
+  <div class="pure-u-1-24" style="text-align: left;">
+    
+    <a href="https://saidie.github.io/post/redis_code_reading_sds/"><i class="fa fa-chevron-left"></i></a>
+    
+  </div>
+  <div class="pure-u-10-24">
+    
+    <nav class="prev">
+      <a href="https://saidie.github.io/post/redis_code_reading_sds/">Redis code reading: sds</a>
+    </nav>
+    
+  </div>
+  <div class="pure-u-2-24">
+    &nbsp;
+  </div>
+  <div class="pure-u-10-24">
+    
+    <nav class="next">
+      <a href="https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part2/">Dijkstra&#39;s algorithm by Redis and Lua (2 of 2)</a>
+    </nav>
+    
+  </div>
+  <div class="pure-u-1-24" style="text-align: right;">
+    
+    <a href="https://saidie.github.io/post/dijkstra_algorithm_by_redis_and_lua_part2/"><i class="fa fa-chevron-right"></i></a>
+    
+  </div>
+</div>
+
+
+
+  
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'saidie-log';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+</div>
+
+</div>
+</div>
+<script src="https://saidie.github.io/js/ui.js"></script>
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-88021039-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+</body>
+</html>
+

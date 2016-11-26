@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="generator" content="Hugo 0.21-DEV" />
+
+  <title>Visualize rough Redis source code dependencies &middot; saidie&#39;s log</title>
+
+  
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/pure-min.css">
+
+  <!--[if lte IE 8]>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-old-ie-min.css">
+  <![endif]-->
+  <!--[if gt IE 8]><!-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pure/0.6.0/grids-responsive-min.css">
+  <!--<![endif]-->
+
+  <!--[if lte IE 8]>
+  <link rel="stylesheet" href="https://saidie.github.io/css/side-menu-old-ie.css">
+  <![endif]-->
+  <!--[if gt IE 8]><!-->
+  <link rel="stylesheet" href="https://saidie.github.io/css/side-menu.css">
+  <!--<![endif]-->
+
+  <link rel="stylesheet" href="https://saidie.github.io/css/blackburn.css">
+
+  
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+  
+  <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet" type="text/css">
+
+  
+  
+
+  
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/styles/solarized-dark.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.1.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  
+
+  <link rel="shortcut icon" href="https://saidie.github.io/img/favicon.ico" type="image/x-icon" />
+
+  
+    <link rel="stylesheet" href="https://saidie.github.io/css/style.css">
+  
+  
+
+</head>
+
+
+<body>
+<div id="layout">
+
+  
+<a href="#menu" id="menuLink" class="menu-link">
+  
+  <span></span>
+</a>
+<div id="menu">
+
+  
+  <a class="pure-menu-heading brand" href="https://saidie.github.io/">@saidie</a>
+
+
+  <div class="pure-menu">
+    <ul class="pure-menu-list">
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/post/"><i class='fa fa-list fa-fw'></i>Posts</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/about/"><i class='fa fa-user fa-fw'></i>About</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/categories/"><i class='fa fa-folder fa-fw'></i>Categories</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/tags/"><i class='fa fa-tags fa-fw'></i>Tags</a>
+      
+        </li>
+      
+      
+        <li class="pure-menu-item">
+          <a class="pure-menu-link" href="https://saidie.github.io/"><i class='fa fa-home fa-fw'></i>Home</a>
+      
+        </li>
+      
+    </ul>
+  </div>
+
+  <div class="pure-menu social">
+  <ul class="pure-menu-list">
+
+    
+
+    
+
+    
+    <li class="pure-menu-item">
+      <a class="pure-menu-link" href="https://twitter.com/siedie" target="_blank"><i class="fa fa-twitter-square fa-fw"></i>Twitter</a>
+    </li>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <li class="pure-menu-item">
+      <a class="pure-menu-link" href="https://github.com/saidie" target="_blank"><i class="fa fa-github-square fa-fw"></i>GitHub</a>
+    </li>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+  </ul>
+</div>
+
+
+  <div>
+  <div class="small-print">
+    <small>Hiroshi Saito &copy; 2016. All rights reserved.</small>
+  </div>
+  <div class="small-print">
+    <small>Built with&nbsp;<a href="https://gohugo.io/" target="_blank">Hugo</a></small>
+    <small>Theme&nbsp;<a href="https://github.com/yoshiharuyamashita/blackburn" target="_blank">Blackburn</a></small>
+  </div>
+</div>
+
+</div>
+
+
+  <div id="main">
+
+
+<div class="header">
+  <h1>Visualize rough Redis source code dependencies</h1>
+</div>
+<div class="content">
+
+  <div class="post-meta">
+
+  <div>
+    <i class="fa fa-calendar fa-fw"></i>
+    <time>2015-11-22 15:17</time>
+  </div>
+
+  
+
+  
+  
+  
+  <div>
+    <i class="fa fa-folder fa-fw"></i>
+    
+      <a class="post-taxonomy-category" href="https://saidie.github.io/categories/redis_code_reading">Redis_code_reading</a>
+    
+  </div>
+  
+  
+
+  
+  
+  
+  <div>
+    <i class="fa fa-tags fa-fw"></i>
+    
+      <a class="post-taxonomy-tag" href="https://saidie.github.io/tags/redis">Redis</a>
+    
+  </div>
+  
+  
+
+</div>
+
+
+  
+
+<p>Now, I&rsquo;m getting interested in Redis.
+The concept of Redis seems to be different from other general purpose database like relational, document, graph databases; each of these employs a one-size-fits-all data model. By no free lunch theorem, these databases cannot store and fetch some kind of data efficiently. Some of this data can be efficiently handled by Redis since it provides specialized and primitive data structures.
+This specialty attracts me.</p>
+
+<p>So, I intend to dig into Redis source codes. First step of code reading is to overview source codes and decide where to read. In this post, I visualize source code dependency graph.</p>
+
+<h2 id="graphviz-dot-utility">Graphviz <code>dot</code> utility</h2>
+
+<p>A simple way to visualize a dependency graph is to use <strong>dot</strong> utility program in <a href="http://www.graphviz.org">Graphviz</a>. It can generate a graphical image from a plain text, e.g.,</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #586e75; font-style: italic"># graph.dot</span>
+digraph <span style="color: #2aa198">&quot;graph&quot;</span> <span style="color: #839496">{</span>
+  a -&gt; b
+  a -&gt; c
+  c -&gt; d
+  c -&gt; e
+<span style="color: #839496">}</span>
+</pre></div>
+
+<p>This source represents a directed graph with 5 nodes <em>a</em>, <em>b</em>, &hellip;, <em>e</em> and 4 edges. Input this to dot:</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span>dot -T png -o graph.png &gt; graph.dot
+</pre></div>
+
+<p>Resulting output becomes:</p>
+
+<p><img src="https://saidie.github.io/image/visualize_redis_source_code_dependencies/dot.png" alt="Example of dot" /></p>
+
+<h2 id="extract-source-code-dependencies">Extract source code dependencies</h2>
+
+<p>As above, we need to enumerate dependencies to visualize the graph but what source code dependency mean in fact? Here, I define a dependency is represented by <code>#include</code> statements (Redis is written in C).
+Thus, dependencies are easily enumerated by a simple script like</p>
+<div class="highlight" style="background: #002b36"><pre style="line-height: 125%"><span></span><span style="color: #268bd2">cd</span> <span style="color: #cb4b16">$PATH_TO_REDIS_REPO</span>
+<span style="color: #268bd2">echo</span> <span style="color: #2aa198">&#39;digraph &quot;redis&quot; {&#39;</span>
+<span style="color: #859900">for</span> i in *.h<span style="color: #839496">;</span> <span style="color: #859900">do</span>
+  <span style="color: #859900">for</span> j in *.<span style="color: #839496">{</span>h,c<span style="color: #839496">};</span> <span style="color: #859900">do</span>
+    <span style="color: #839496">[[</span> <span style="color: #cb4b16">${i</span><span style="color: #839496">%.h</span><span style="color: #cb4b16">}</span> <span style="color: #839496">=</span> <span style="color: #cb4b16">${j</span><span style="color: #839496">%.*</span><span style="color: #cb4b16">}</span> <span style="color: #839496">]]</span> <span style="color: #839496">&amp;&amp;</span> <span style="color: #859900">continue</span>
+    grep -q -E <span style="color: #2aa198">&quot;#include\s*[&lt;\&quot;]</span><span style="color: #cb4b16">${i}</span><span style="color: #2aa198">[\&quot;&gt;]&quot;</span> <span style="color: #cb4b16">$j</span> <span style="color: #839496">&amp;&amp;</span> <span style="color: #268bd2">echo</span> <span style="color: #2aa198">&quot;\&quot;</span><span style="color: #cb4b16">${j</span><span style="color: #839496">%.*</span><span style="color: #cb4b16">}</span><span style="color: #2aa198">\&quot; -&gt; \&quot;</span><span style="color: #cb4b16">${i</span><span style="color: #839496">%.*</span><span style="color: #cb4b16">}</span><span style="color: #2aa198">\&quot;&quot;</span>
+  <span style="color: #859900">done</span>
+<span style="color: #859900">done</span>
+<span style="color: #268bd2">echo</span> <span style="color: #2aa198">&#39;}&#39;</span>
+</pre></div>
+
+<p>(Nested loop is to exclude header files not in Redis repository such as <code>stdin.h</code>)</p>
+
+<p>Here is the resulting dependency graph:</p>
+
+<p><a href="https://saidie.github.io/image/visualize_redis_source_code_dependencies/redis1.png"><img src="https://saidie.github.io/image/visualize_redis_source_code_dependencies/redis1.png" alt="First attempt" width="100%" /></a></p>
+
+<p>A <strong>bit</strong> complex. As you can see, almost source codes have dependency with <code>redis.h</code>. So I remove this <em>trivial</em> dependency and regenerated a graph:</p>
+
+<p><a href="https://saidie.github.io/image/visualize_redis_source_code_dependencies/redis2.png"><img src="https://saidie.github.io/image/visualize_redis_source_code_dependencies/redis2.png" alt="Second attempt" width="100%"></a></p>
+
+<p>Looks little bit clear! Maybe I should understand zmalloc first.</p>
+
+
+  <script>window.twttr = (function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0],
+  t = window.twttr || {};
+  if (d.getElementById(id)) return t;
+  js = d.createElement(s);
+  js.id = id;
+  js.src = "https://platform.twitter.com/widgets.js";
+  fjs.parentNode.insertBefore(js, fjs);
+
+  t._e = [];
+  t.ready = function(f) {
+  t._e.push(f);
+  };
+
+  return t;
+  }(document, "script", "twitter-wjs"));</script>
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.8";
+  fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));</script>
+
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+
+<div class="share">
+  <div>
+    <div class="share-button">
+      <a class="twitter-share-button"
+         href="https://twitter.com/intent/tweet?text=Visualize%20rough%20Redis%20source%20code%20dependencies&nbsp;-&nbsp;saidie%27s%20log&amp;url=https%3a%2f%2fsaidie.github.io%2fpost%2fvisualize_redis_source_code_dependencies%2f&amp;via=siedie">
+        Tweet
+      </a>
+    </div>
+    <div class="share-button">
+    <div class="fb-share-button" data-href="https://saidie.github.io/post/visualize_redis_source_code_dependencies/" data-layout="box_count" data-size="small">
+      <a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fsaidie.github.io%2fpost%2fvisualize_redis_source_code_dependencies%2f&amp;src=sdkpreparse">シェア</a>
+    </div>
+    </div>
+    <div class="share-button">
+    <g:plus action="share" data-href="https://saidie.github.io/post/visualize_redis_source_code_dependencies/" data-annotation="bubble"></g:plus>
+    </div>
+  </div>
+</div>
+
+
+  
+<div class="prev-next-post pure-g">
+  <div class="pure-u-1-24" style="text-align: left;">
+    
+  </div>
+  <div class="pure-u-10-24">
+    
+  </div>
+  <div class="pure-u-2-24">
+    &nbsp;
+  </div>
+  <div class="pure-u-10-24">
+    
+    <nav class="next">
+      <a href="https://saidie.github.io/post/redis_code_reading_zmalloc/">Redis code reading: zmalloc</a>
+    </nav>
+    
+  </div>
+  <div class="pure-u-1-24" style="text-align: right;">
+    
+    <a href="https://saidie.github.io/post/redis_code_reading_zmalloc/"><i class="fa fa-chevron-right"></i></a>
+    
+  </div>
+</div>
+
+
+
+  
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'saidie-log';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+</div>
+
+</div>
+</div>
+<script src="https://saidie.github.io/js/ui.js"></script>
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-88021039-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+</body>
+</html>
+
